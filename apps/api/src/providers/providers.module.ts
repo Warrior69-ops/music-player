@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
+import { CacheModule } from '@nestjs/cache-manager';
 
 import { AudiusService } from './audius/audius.service';
 import { JamendoService } from './jamendo/jamendo.service';
@@ -10,7 +11,7 @@ import { LrclibService } from './lrclib/lrclib.service';
 import { YoutubeService } from './youtube/youtube.service';
 
 @Module({
-  imports: [HttpModule, ConfigModule],
+  imports: [HttpModule, ConfigModule, CacheModule.register()],
   providers: [
     AudiusService,
     JamendoService,

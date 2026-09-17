@@ -37,12 +37,18 @@ export function useAudioPlayer() {
     const onEnded = () => playNextRef.current();
     const onWaiting = () => setIsLoading(true);
     const onPlaying = () => setIsLoading(false);
+    const onError = () => {
+      console.error('HTML5 Audio error event:', globalAudio?.error);
+      setIsLoading(false);
+      setIsPlaying(false);
+    };
 
     globalAudio.addEventListener('loadeddata', setAudioData);
     globalAudio.addEventListener('timeupdate', setAudioTime);
     globalAudio.addEventListener('ended', onEnded);
     globalAudio.addEventListener('waiting', onWaiting);
     globalAudio.addEventListener('playing', onPlaying);
+    globalAudio.addEventListener('error', onError);
 
     // Sync initial state if globalAudio is already playing something
     setDuration(globalAudio.duration || 0);
@@ -55,6 +61,7 @@ export function useAudioPlayer() {
         globalAudio.removeEventListener('ended', onEnded);
         globalAudio.removeEventListener('waiting', onWaiting);
         globalAudio.removeEventListener('playing', onPlaying);
+        globalAudio.removeEventListener('error', onError);
       }
     };
   }, []);
@@ -72,7 +79,7 @@ export function useAudioPlayer() {
 
       try {
         let url = currentTrack.audioUrl;
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
         
         if (currentTrack.provider === 'youtube') {
           // Send YouTube requests directly to our backend proxy to avoid 403 IP-Binding errors
@@ -87,7 +94,9 @@ export function useAudioPlayer() {
           globalAudio.src = url;
           globalAudio.load();
           if (isPlaying) {
-            globalAudio.play().catch(console.error);
+            globalAudio.play().catch((err) => {
+              console.warn('Playback interrupted or blocked by autoplay policy:', err.message);
+            });
           }
           
           // Log history in the background
@@ -110,7 +119,9 @@ export function useAudioPlayer() {
     if (!globalAudio || !globalAudio.src) return;
     
     if (isPlaying && globalAudio.paused) {
-      globalAudio.play().catch(console.error);
+      globalAudio.play().catch((err) => {
+        console.warn('Playback interrupted or blocked by autoplay policy:', err.message);
+      });
     } else if (!isPlaying && !globalAudio.paused) {
       globalAudio.pause();
     }

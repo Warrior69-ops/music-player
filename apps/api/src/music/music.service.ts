@@ -58,6 +58,10 @@ export class MusicService {
     return streamableTracks;
   }
 
+  async getYoutubeStreamInfo(id: string) {
+    return this.youtubeService.getRawStreamInfo(id);
+  }
+
   private getProviderService(provider: string) {
     if (provider === 'audius') return this.audiusService;
     if (provider === 'jamendo') return this.jamendoService;

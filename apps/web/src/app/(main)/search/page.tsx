@@ -1,14 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchMusic } from '@/hooks/queries';
 import { TrackCard } from '@/components/ui/TrackCard';
 import { Search as SearchIcon } from 'lucide-react';
+import api from '@/lib/api';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [searchTrigger, setSearchTrigger] = useState('');
   const { data: tracks, isLoading } = useSearchMusic(searchTrigger);
+
+  // Eager Pre-fetching: Silently resolve the top 3 YouTube stream URLs in the background
+  useEffect(() => {
+    if (tracks && tracks.length > 0) {
+      const topYoutubeTracks = tracks.filter(t => t.provider === 'youtube').slice(0, 3);
+      topYoutubeTracks.forEach(track => {
+        // Hitting the proxy silently will force the backend to cache the stream URL
+        api.get(`/music/proxy/youtube/${track.providerTrackId}/prefetch`).catch(() => {});
+      });
+    }
+  }, [tracks]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

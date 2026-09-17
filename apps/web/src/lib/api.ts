@@ -19,5 +19,21 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+// Add a response interceptor to handle 401 errors gracefully
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // If the backend says the token is invalid or expired, log the user out
+      useAuthStore.getState().logout();
+      
+      // Only redirect if we're in the browser environment
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;
