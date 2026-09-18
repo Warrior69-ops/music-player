@@ -33,10 +33,12 @@
     "@nestjs/throttler": "^6.7.0",
     "axios": "^1.20.0",
     "bcrypt": "^6.0.0",
+    "bgutils-js": "^4.0.3",
     "cache-manager": "^7.2.9",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "helmet": "^8.3.0",
+    "jsdom": "^29.1.1",
     "mongoose": "^9.9.5",
     "nodemailer": "^10.0.2",
     "passport": "^0.7.0",
@@ -44,6 +46,8 @@
     "play-dl": "^1.9.7",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "youtube-dl-exec": "^3.1.15",
+    "youtube-po-token-generator": "^0.6.0",
     "youtubei.js": "^18.0.0"
   },
   "devDependencies": {

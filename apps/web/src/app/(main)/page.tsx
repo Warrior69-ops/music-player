@@ -1,12 +1,24 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useHistory } from '@/hooks/queries';
 import { TrackCard } from '@/components/ui/TrackCard';
+import api from '@/lib/api';
 
 export default function HomePage() {
   const { user } = useAuthStore();
   const { data: history, isLoading } = useHistory();
+
+  // Eager pre-fetching: resolve top 3 recently played streams in the background
+  useEffect(() => {
+    if (history && history.length > 0) {
+      const topYoutubeTracks = history.filter(t => t.provider === 'youtube').slice(0, 3);
+      topYoutubeTracks.forEach(track => {
+        api.get(`/music/proxy/youtube/${track.providerTrackId}/prefetch`).catch(() => {});
+      });
+    }
+  }, [history]);
 
   if (!user) return null;
 

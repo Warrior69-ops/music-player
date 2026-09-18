@@ -5,6 +5,88 @@ import type { Response, Request } from 'express';
 
 import { Readable } from 'node:stream';
 import { getClient } from '../scraper/youtubeScraper';
+import youtubedl from 'youtube-dl-exec';
+
+interface CachedStream {
+  url: string;
+  headers: Record<string, string>;
+  expiresAt: number;
+}
+
+const streamUrlCache = new Map<string, CachedStream>();
+const inFlightFetches = new Map<string, Promise<CachedStream | null>>();
+
+// Parallel prefetch: fire up to MAX_PARALLEL yt-dlp processes simultaneously
+const MAX_PARALLEL_PREFETCH = 3;
+let activePrefetches = 0;
+
+export function queuePrefetch(id: string) {
+  if (streamUrlCache.has(id) || inFlightFetches.has(id)) return;
+  if (activePrefetches >= MAX_PARALLEL_PREFETCH) return; // don't overload CPU
+  activePrefetches++;
+  resolveYtDlpStream(id)
+    .catch(() => {})
+    .finally(() => { activePrefetches--; });
+}
+
+async function resolveYtDlpStream(id: string): Promise<CachedStream | null> {
+  const existingInFlight = inFlightFetches.get(id);
+  if (existingInFlight) {
+    return existingInFlight;
+  }
+
+  const fetchPromise = (async () => {
+    try {
+      const urlOutput: any = await (youtubedl as any)(`https://www.youtube.com/watch?v=${id}`, {
+        print: 'url,http_headers',
+        format: '140/bestaudio/best',
+        extractorArgs: 'youtube:player_client=android,web' // FIX for 403s: bypasses strict botguard checks
+      });
+      const outputStr = typeof urlOutput === 'string' ? urlOutput.trim() : String(urlOutput).trim();
+      const lines = outputStr.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const url = lines[0];
+
+      if (url && url.startsWith('http')) {
+        let expiresAt = Date.now() + 2 * 60 * 60 * 1000;
+        try {
+          const urlObj = new URL(url);
+          const expireParam = urlObj.searchParams.get('expire');
+          if (expireParam) {
+            expiresAt = parseInt(expireParam, 10) * 1000 - 5 * 60 * 1000;
+          }
+        } catch (e) {}
+
+        const headers: Record<string, string> = {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
+        };
+
+        const headersLine = lines.find((l) => l.startsWith('{'));
+        if (headersLine) {
+          try {
+            // yt-dlp outputs dictionary like {'User-Agent': '...', 'Accept': '...'}
+            const matches = headersLine.matchAll(/'([^']+)'\s*:\s*'([^']+)'/g);
+            for (const match of matches) {
+              headers[match[1]] = match[2];
+            }
+          } catch (e) {}
+        }
+
+        const entry: CachedStream = { url, headers, expiresAt };
+        streamUrlCache.set(id, entry);
+        return entry;
+      }
+      return null;
+    } catch (e) {
+      console.error(`yt-dlp fetch failed for video ${id}:`, e);
+      return null;
+    } finally {
+      inFlightFetches.delete(id);
+    }
+  })();
+
+  inFlightFetches.set(id, fetchPromise);
+  return fetchPromise;
+}
 
 @Controller('music')
 export class MusicController {
@@ -17,6 +99,14 @@ export class MusicController {
     }
 
     const data = await this.musicService.searchTracks(query);
+    
+    // Background prefetch for top 3 results — parallel, not sequential
+    if (data && data.length > 0) {
+      // NOTE: field is providerTrackId, not id!
+      const topIds = data.slice(0, 3).map((t: any) => t.providerTrackId).filter(Boolean);
+      topIds.forEach(id => queuePrefetch(id));
+    }
+    
     return { success: true, data };
   }
 
@@ -33,13 +123,57 @@ export class MusicController {
     return { success: true, data };
   }
 
+  @Get('suggest')
+  async getSuggestions(@Query('q') query: string) {
+    if (!query || query.length < 2) return { success: true, data: [] };
+    try {
+      const { getClient } = await import('../scraper/youtubeScraper.js');
+      const yt = await getClient();
+      const sections = await yt.music.getSearchSuggestions(query);
+
+      // Section 0 = text query suggestions (music-specific, e.g. "shape of you slowed")
+      // Section 1 = actual song matches (MusicResponsiveListItem with id, title, artists)
+      const textSuggestions: Array<{ type: 'query'; text: string }> = [];
+      const songSuggestions: Array<{ type: 'song'; id: string; title: string; artist: string }> = [];
+
+      for (const section of sections) {
+        if (!section.contents) continue;
+        for (const item of section.contents) {
+          const anyItem = item as any;
+          if (item.type === 'SearchSuggestion') {
+            // Plain text suggestion — music context only
+            const text = anyItem.suggestion?.toString?.() || anyItem.query || '';
+            if (text) textSuggestions.push({ type: 'query', text });
+          } else if (item.type === 'MusicResponsiveListItem') {
+            // Actual song from YouTube Music
+            const id = anyItem.id;
+            const title = anyItem.title?.toString?.() || '';
+            const artist = anyItem.artists?.map((a: any) => a.name).join(', ') || '';
+            if (id && title) songSuggestions.push({ type: 'song', id, title, artist });
+          }
+        }
+      }
+
+      // Return up to 5 text suggestions + up to 4 song suggestions
+      const data = [
+        ...textSuggestions.slice(0, 5),
+        ...songSuggestions.slice(0, 4),
+      ];
+
+      // Prefetch the song suggestions so they're instant when clicked
+      songSuggestions.slice(0, 3).forEach(s => queuePrefetch(s.id));
+
+      return { success: true, data };
+    } catch (e) {
+      return { success: true, data: [] };
+    }
+  }
+
   @Get('proxy/youtube/:id/prefetch')
   async prefetchYoutubeStream(@Param('id') id: string) {
     if (!id) throw new BadRequestException('Missing YouTube ID');
-    // Just hitting this method forces the YoutubeService to resolve and cache the stream URL
-    // so that when the user actually hits /proxy/youtube/:id, it's instant.
-    await this.musicService.getYoutubeStreamInfo(id);
-    return { success: true, message: 'Prefetched' };
+    queuePrefetch(id);
+    return { success: true, message: 'Prefetch initiated' };
   }
 
   @Get('proxy/youtube/:id')
@@ -47,133 +181,79 @@ export class MusicController {
     if (!id) throw new BadRequestException('Missing YouTube ID');
 
     try {
-      const yt = await getClient();
-      
-      // 1. Get track info natively
-      const info = await yt.music.getInfo(id);
-      
-      // 2. Choose the best audio format - prefer MP4/AAC (itag 140) for universal browser support
-      let format;
-      try {
-        format = info.chooseFormat({
-          type: 'audio',
-          quality: 'best',
-          format: 'mp4'
-        });
-      } catch {
-        format = info.chooseFormat({
-          type: 'audio',
-          quality: 'best',
-          format: 'any'
-        });
+      let cached = streamUrlCache.get(id);
+      if (cached && Date.now() > cached.expiresAt) {
+        streamUrlCache.delete(id);
+        cached = undefined;
       }
 
-      // 3. Decipher the signature to get the raw Google Video CDN URL
-      const streamUrl = await format.decipher(yt.session.player);
-
-      if (!streamUrl) {
-        throw new Error('Failed to decipher streaming URL');
+      if (!cached) {
+        cached = (await resolveYtDlpStream(id)) || undefined;
       }
 
-      const totalLength = format.content_length;
-      const rangeHeader = req.headers.range;
-      
-      let start = 0;
-      let requestedEnd = totalLength ? totalLength - 1 : undefined;
-
-      if (rangeHeader) {
-        const matches = /bytes=(\d+)-(\d*)/.exec(rangeHeader);
-        if (matches) {
-          start = parseInt(matches[1], 10);
-          if (matches[2]) {
-            requestedEnd = parseInt(matches[2], 10);
-          }
-        }
+      if (!cached || !cached.url) {
+        throw new Error('Failed to fetch stream URL');
       }
 
-      const isRange = Boolean(rangeHeader && requestedEnd !== undefined && totalLength);
-      const mimeType = format.mime_type?.split(';')[0] || 'audio/mp4';
+      const upstreamHeaders: Record<string, string> = { ...cached.headers };
 
-      res.setHeader('Content-Type', mimeType);
-      res.setHeader('Accept-Ranges', 'bytes');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-
-      if (isRange && totalLength) {
-        const contentLength = requestedEnd! - start + 1;
-        res.status(206);
-        res.setHeader('Content-Range', `bytes ${start}-${requestedEnd}/${totalLength}`);
-        res.setHeader('Content-Length', contentLength.toString());
-      } else if (totalLength) {
-        res.status(200);
-        res.setHeader('Content-Length', totalLength.toString());
-        requestedEnd = totalLength - 1;
-      } else {
-        res.status(200);
+      if (req.headers.range) {
+        upstreamHeaders['Range'] = req.headers.range;
       }
 
-      let isAborted = false;
       const abortController = new AbortController();
-
       req.on('close', () => {
-        isAborted = true;
         abortController.abort();
       });
 
-      // Google Video CDN limits single range requests to ~1MB. We use 512KB chunks for instant TTFB.
-      const CHUNK_SIZE = 512 * 1024;
-      let current = start;
-      const finalEnd = requestedEnd !== undefined ? requestedEnd : (totalLength ? totalLength - 1 : current + CHUNK_SIZE);
+      console.log(`[StreamProxy] Request for ${id}, Range: ${req.headers.range}`);
+      const upstreamRes = await fetch(cached.url, {
+        headers: upstreamHeaders,
+        signal: abortController.signal,
+      });
 
-      while (current <= finalEnd && !isAborted && !res.writableEnded) {
-        const chunkEnd = Math.min(current + CHUNK_SIZE - 1, finalEnd);
-        
-        try {
-          const upstreamRes = await fetch(streamUrl, {
-            signal: abortController.signal,
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-              'Range': `bytes=${current}-${chunkEnd}`
-            }
-          });
-
-          if (!upstreamRes.ok && upstreamRes.status !== 206) {
-            console.error(`Upstream Google CDN error ${upstreamRes.status} for range ${current}-${chunkEnd}`);
-            break;
-          }
-
-          if (upstreamRes.body) {
-            const reader = upstreamRes.body.getReader();
-            while (!isAborted && !res.writableEnded) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              if (value) {
-                const canContinue = res.write(Buffer.from(value));
-                if (!canContinue) {
-                  await new Promise((resolve) => res.once('drain', resolve));
-                }
-              }
-            }
-          }
-
-          current = chunkEnd + 1;
-        } catch (err: any) {
-          if (err.name === 'AbortError' || isAborted) {
-            break;
-          }
-          console.error('Error streaming chunk from YouTube:', err.message);
-          break;
-        }
+      if (!upstreamRes.ok && upstreamRes.status !== 206) {
+        console.error(`[StreamProxy] Upstream 403/Error for track ${id}:`, {
+          status: upstreamRes.status,
+          statusText: upstreamRes.statusText,
+          cachedHeaders: cached.headers,
+          range: req.headers.range,
+          urlDomain: new URL(cached.url).hostname,
+        });
+        streamUrlCache.delete(id);
+        throw new Error(`Upstream returned ${upstreamRes.status}`);
       }
 
-      if (!res.writableEnded) {
+      // Forward response headers securely
+      res.status(upstreamRes.status);
+      upstreamRes.headers.forEach((value, key) => {
+        const lowerKey = key.toLowerCase();
+        if (['content-type', 'content-length', 'content-range', 'accept-ranges'].includes(lowerKey)) {
+          res.setHeader(lowerKey, value);
+        }
+      });
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+
+      if (upstreamRes.body) {
+        // @ts-ignore
+        const readable = Readable.fromWeb(upstreamRes.body);
+        readable.on('error', () => {
+          if (!res.headersSent) res.status(500).end();
+        });
+        readable.pipe(res);
+      } else {
         res.end();
       }
-
     } catch (err: any) {
-      console.error('Streaming pipeline error:', err.message);
+      if (err.name === 'AbortError') {
+        return res.end();
+      }
+      console.error('Streaming error:', err);
       if (!res.headersSent) {
-        res.status(500).send('Internal streaming proxy error');
+        res.status(500).json({ error: err.message });
+      } else {
+        res.end();
       }
     }
   }

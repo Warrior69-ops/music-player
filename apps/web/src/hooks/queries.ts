@@ -8,10 +8,31 @@ export const useSearchMusic = (query: string) => {
     queryKey: ['search', query],
     queryFn: async () => {
       if (!query) return [];
-      const { data } = await api.get(`/music/search?q=${query}`);
+      const { data } = await api.get(`/music/search?q=${encodeURIComponent(query)}`);
       return data.data as Track[];
     },
     enabled: !!query,
+    staleTime: 5 * 60 * 1000, // cache results for 5 min
+  });
+};
+
+export type MusicSuggestion =
+  | { type: 'query'; text: string }
+  | { type: 'song'; id: string; title: string; artist: string };
+
+// Live suggestions while typing (debounced via staleTime)
+export const useSuggestMusic = (query: string) => {
+  return useQuery({
+    queryKey: ['suggest', query],
+    queryFn: async () => {
+      if (!query || query.length < 2) return [] as MusicSuggestion[];
+      const { data } = await api.get(`/music/suggest?q=${encodeURIComponent(query)}`);
+      return data.data as MusicSuggestion[];
+    },
+    enabled: !!query && query.length >= 2,
+    staleTime: 30 * 1000, // cache suggestions for 30s
+    placeholderData: [] as MusicSuggestion[], // never show loading spinner for suggestions
+
   });
 };
 

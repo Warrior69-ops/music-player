@@ -30,15 +30,18 @@ export function useAudioPlayer() {
     const setAudioData = () => {
       setDuration(globalAudio!.duration);
       setCurrentTime(globalAudio!.currentTime);
-      setIsLoading(false);
     };
 
     const setAudioTime = () => setCurrentTime(globalAudio!.currentTime);
     const onEnded = () => playNextRef.current();
     const onWaiting = () => setIsLoading(true);
+    const onCanPlay = () => setIsLoading(false);  // audio is buffered enough to start
     const onPlaying = () => setIsLoading(false);
     const onError = () => {
-      console.error('HTML5 Audio error event:', globalAudio?.error);
+      const err = globalAudio?.error;
+      if (err) {
+        console.error('HTML5 Audio error:', { code: err.code, message: err.message });
+      }
       setIsLoading(false);
       setIsPlaying(false);
     };
@@ -47,6 +50,7 @@ export function useAudioPlayer() {
     globalAudio.addEventListener('timeupdate', setAudioTime);
     globalAudio.addEventListener('ended', onEnded);
     globalAudio.addEventListener('waiting', onWaiting);
+    globalAudio.addEventListener('canplay', onCanPlay);
     globalAudio.addEventListener('playing', onPlaying);
     globalAudio.addEventListener('error', onError);
 
@@ -60,6 +64,7 @@ export function useAudioPlayer() {
         globalAudio.removeEventListener('timeupdate', setAudioTime);
         globalAudio.removeEventListener('ended', onEnded);
         globalAudio.removeEventListener('waiting', onWaiting);
+        globalAudio.removeEventListener('canplay', onCanPlay);
         globalAudio.removeEventListener('playing', onPlaying);
         globalAudio.removeEventListener('error', onError);
       }
@@ -101,14 +106,17 @@ export function useAudioPlayer() {
           
           // Log history in the background
           api.post('/history', currentTrack).catch(console.error);
+        } else {
+          // URL already loaded, just clear loading state
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Failed to play track:', error);
         setIsPlaying(false);
-        currentLoadedTrackId = null;
-      } finally {
         setIsLoading(false);
+        currentLoadedTrackId = null;
       }
+      // NOTE: Do NOT call setIsLoading(false) in finally — the audio events handle it
     };
 
     fetchAndPlayStream();
