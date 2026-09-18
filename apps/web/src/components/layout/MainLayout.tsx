@@ -16,12 +16,14 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!currentTrack) {
       api.get('/history').then(res => {
-        const history = res.data.data;
+        const history = res.data?.data;
         if (history && history.length > 0) {
           // Initialize with the last played track but keep it paused
           usePlayerStore.setState({ currentTrack: history[0], isPlaying: false });
         }
-      }).catch(console.error);
+      }).catch(() => {
+        // Startup or unauthenticated check - ignore safely
+      });
     }
   }, []);
 

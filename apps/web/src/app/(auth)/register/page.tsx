@@ -23,7 +23,14 @@ export default function RegisterPage() {
         router.push('/login');
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Registration failed. Please try again.');
+      const msg =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        (err.code === 'ERR_NETWORK' || err.message === 'Network Error'
+          ? 'Backend server is connecting. Please wait a moment and try again.'
+          : err.message) ||
+        'Registration failed. Please try again.';
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

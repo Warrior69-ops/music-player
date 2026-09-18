@@ -90,26 +90,27 @@ export async function resolveYoutubeTrack(queryOrUrl: string): Promise<YoutubeTr
 /**
  * Native Search functionality replicating yt-search
  */
-export async function searchYoutubeTracks(query: string, limit = 5): Promise<YoutubeSearchResult[]> {
+export async function searchYoutubeTracks(query: string, limit = 10): Promise<YoutubeSearchResult[]> {
   try {
     const yt = await getClient();
-    logger.log(`Searching via youtubei.js: ${query}`);
+    logger.log(`Searching via youtubei.js (music): ${query}`);
     
-    // We use the standard search instead of music search to mirror previous behavior
-    // which captured standard videos like covers, live performances, etc.
-    const search = await yt.search(query, { type: 'video' });
+    // We use YouTube Music search to only index songs, filtering out vlogs, documentaries, etc.
+    const search = await yt.music.search(query, { type: 'song' });
     
-    const videos = search.videos.slice(0, limit);
+    // Extract songs from the search results
+    const songs = search.songs?.contents || [];
+    const limitedSongs = songs.slice(0, limit);
     
-    return videos.map((v: any) => ({
+    return limitedSongs.map((v: any) => ({
       id: v.id,
-      title: v.title.text,
+      title: v.title,
       duration: v.duration?.seconds || 0,
-      thumbnail: v.best_thumbnail?.url || '',
-      artist: v.author?.name || 'YouTube'
+      thumbnail: v.thumbnails?.[0]?.url || '',
+      artist: v.artists?.[0]?.name || 'Unknown Artist'
     }));
   } catch (err: any) {
-    logger.error('youtubei.js search failed:', err.message);
+    logger.error('youtubei.js music search failed:', err.message);
     return [];
   }
 }
