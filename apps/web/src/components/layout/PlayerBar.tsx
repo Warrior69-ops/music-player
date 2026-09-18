@@ -1,6 +1,6 @@
 'use client';
 
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Mic2, Heart, Plus } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Mic2, Heart, Plus, Shuffle, ListMusic } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { usePlayerStore } from '@/store/usePlayerStore';
@@ -21,7 +21,19 @@ export function PlayerBar() {
   const router = useRouter();
   const pathname = usePathname();
   const isLyricsPage = pathname === '/lyrics';
-  const { currentTrack, isPlaying, volume, setVolume, playNext, playPrevious } = usePlayerStore();
+  const {
+    currentTrack,
+    isPlaying,
+    volume,
+    setVolume,
+    playNext,
+    nextTrack,
+    playPrevious,
+    isShuffle,
+    toggleShuffle,
+    isQueueOpen,
+    toggleQueue,
+  } = usePlayerStore();
   const { currentTime, duration, isLoading, togglePlay, seek } = useAudioPlayer();
   
   const { openPlaylistModal } = useUIStore();
@@ -86,7 +98,18 @@ export function PlayerBar() {
 
       {/* Controls */}
       <div className="flex flex-col items-center justify-center flex-1 max-w-md gap-2">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-5">
+          <button
+            onClick={toggleShuffle}
+            className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
+              isShuffle
+                ? 'text-primary drop-shadow-[0_0_10px_rgba(168,85,247,0.8)]'
+                : 'text-muted-foreground hover:text-white'
+            }`}
+            title={isShuffle ? 'Shuffle is ON (Click to turn OFF)' : 'Shuffle is OFF (Click to turn ON)'}
+          >
+            <Shuffle className="w-4 h-4" />
+          </button>
           <button onClick={playPrevious} className="text-muted-foreground hover:text-white transition-colors">
             <SkipBack className="w-5 h-5 fill-current" />
           </button>
@@ -103,7 +126,7 @@ export function PlayerBar() {
               <Play className="w-5 h-5 fill-current translate-x-0.5" />
             )}
           </button>
-          <button onClick={playNext} className="text-muted-foreground hover:text-white transition-colors">
+          <button onClick={() => nextTrack()} className="text-muted-foreground hover:text-white transition-colors">
             <SkipForward className="w-5 h-5 fill-current" />
           </button>
         </div>
@@ -178,6 +201,17 @@ export function PlayerBar() {
           title="Add to Playlist"
         >
           <Plus className="w-5 h-5" />
+        </button>
+        <button
+          onClick={toggleQueue}
+          className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
+            isQueueOpen
+              ? 'text-primary bg-primary/20 shadow-[0_0_12px_rgba(168,85,247,0.4)] ring-1 ring-primary/40'
+              : 'text-muted-foreground hover:text-white'
+          }`}
+          title="Playback Queue"
+        >
+          <ListMusic className="w-5 h-5" />
         </button>
 
         <div className="w-px h-4 bg-white/10 mx-2" />

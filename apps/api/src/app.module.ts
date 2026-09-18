@@ -14,6 +14,7 @@ import { LyricsModule } from './lyrics/lyrics.module';
 import { HistoryModule } from './history/history.module';
 import { PlaylistsModule } from './playlists/playlists.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { RecommendationsModule } from './recommendations/recommendations.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { FavoritesModule } from './favorites/favorites.module';
     PlaylistsModule,
     FavoritesModule,
     LyricsModule,
+    RecommendationsModule,
   ],
   controllers: [AppController],
   providers: [

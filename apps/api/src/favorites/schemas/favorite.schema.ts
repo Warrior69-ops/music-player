@@ -1,18 +1,35 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { User } from '../../users/schemas/user.schema';
-import { Track } from '../../music/schemas/track.schema';
 
-@Schema({ timestamps: { createdAt: true, updatedAt: false } })
+@Schema({ timestamps: true })
 export class Favorite extends Document {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   userId: Types.ObjectId | User;
 
-  @Prop({ type: Types.ObjectId, ref: 'Track', required: true })
-  trackId: Types.ObjectId | Track;
+  @Prop({ required: true })
+  providerTrackId: string;
+
+  @Prop({ required: true })
+  provider: string;
+
+  @Prop({ required: true })
+  title: string;
+
+  @Prop({ required: true })
+  artist: string;
+
+  @Prop()
+  albumArt?: string;
+
+  @Prop()
+  duration?: number;
+
+  @Prop({ default: Date.now })
+  addedAt: Date;
 }
 
 export const FavoriteSchema = SchemaFactory.createForClass(Favorite);
 
-// Unique compound index so a user can only favorite a track once
-FavoriteSchema.index({ userId: 1, trackId: 1 }, { unique: true });
+// Compound unique index ensuring a user can favorite a track once
+FavoriteSchema.index({ userId: 1, providerTrackId: 1 }, { unique: true });

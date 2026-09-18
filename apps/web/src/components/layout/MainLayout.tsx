@@ -5,13 +5,18 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { PlayerBar } from './PlayerBar';
 import { PlaylistModal } from '../ui/PlaylistModal';
+import { QueueDrawer } from '../ui/QueueDrawer';
 import { useUIStore } from '@/store/useUIStore';
 import { usePlayerStore } from '@/store/usePlayerStore';
+import { useAutoplayObserver } from '@/hooks/useAutoplay';
 import api from '@/lib/api';
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const { isPlaylistModalOpen, closePlaylistModal, playlistModalTrack } = useUIStore();
   const { currentTrack, setCurrentTrack, setIsPlaying } = usePlayerStore();
+
+  // Run infinite autoplay observer in the background
+  useAutoplayObserver();
 
   useEffect(() => {
     if (!currentTrack) {
@@ -46,6 +51,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
         onClose={closePlaylistModal} 
         track={playlistModalTrack} 
       />
+      <QueueDrawer />
     </div>
   );
 }

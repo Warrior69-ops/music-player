@@ -33,7 +33,9 @@ export function useAudioPlayer() {
     };
 
     const setAudioTime = () => setCurrentTime(globalAudio!.currentTime);
-    const onEnded = () => playNextRef.current();
+    const onEnded = () => {
+      usePlayerStore.getState().nextTrack();
+    };
     const onWaiting = () => setIsLoading(true);
     const onCanPlay = () => setIsLoading(false);  // audio is buffered enough to start
     const onPlaying = () => setIsLoading(false);

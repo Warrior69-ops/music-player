@@ -10,19 +10,22 @@ export class FavoritesController {
 
   @Post()
   async addFavorite(@Request() req, @Body() dto: AddFavoriteDto) {
-    const data = await this.favoritesService.addFavorite(req.user._id, dto);
+    const userId = req.user._id || req.user.id;
+    const data = await this.favoritesService.addFavorite(userId, dto);
     return { success: true, data };
   }
 
   @Get()
   async getFavorites(@Request() req) {
-    const data = await this.favoritesService.getUserFavorites(req.user._id);
+    const userId = req.user._id || req.user.id;
+    const data = await this.favoritesService.getUserFavorites(userId);
     return { success: true, data };
   }
 
   @Delete(':providerTrackId')
   async removeFavorite(@Request() req, @Param('providerTrackId') providerTrackId: string) {
-    await this.favoritesService.removeFavorite(req.user._id, providerTrackId);
+    const userId = req.user._id || req.user.id;
+    await this.favoritesService.removeFavorite(userId, providerTrackId);
     return { success: true, message: 'Track removed from favorites' };
   }
 }
