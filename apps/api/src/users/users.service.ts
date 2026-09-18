@@ -32,4 +32,23 @@ export class UsersService {
   async update(id: string | Types.ObjectId, updateData: Partial<User>): Promise<User | null> {
     return this.userModel.findByIdAndUpdate(id, updateData, { new: true }).exec();
   }
+
+  async updateMusicPreferences(
+    id: string | Types.ObjectId,
+    preferences: {
+      languages: string[];
+      favoriteArtists: { id: string; name: string; thumbnail: string }[];
+    },
+  ): Promise<User | null> {
+    return this.userModel
+      .findByIdAndUpdate(
+        id,
+        {
+          preferences,
+          hasCompletedOnboarding: true,
+        },
+        { new: true },
+      )
+      .exec();
+  }
 }

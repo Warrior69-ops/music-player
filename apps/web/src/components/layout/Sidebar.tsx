@@ -9,7 +9,7 @@ export function Sidebar() {
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/30 flex items-center justify-center">
           <ListMusic className="w-4 h-4 text-white" />
         </div>
-        <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60 tracking-tight">Resonance</h1>
+        <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60 tracking-tight">Nocturne</h1>
       </div>
 
       <nav className="flex-1 px-4 space-y-8">

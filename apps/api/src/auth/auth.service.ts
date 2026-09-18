@@ -134,7 +134,14 @@ export class AuthService {
 
     return {
       accessToken,
-      user: { id: user._id, name: user.name, email: user.email, avatarUrl: user.avatarUrl }
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatarUrl: user.avatarUrl,
+        hasCompletedOnboarding: user.hasCompletedOnboarding ?? false,
+        preferences: user.preferences,
+      }
     };
   }
 

@@ -144,3 +144,47 @@ export const useLyrics = (trackName?: string, artistName?: string, duration?: nu
     retry: false, // Don't retry if lyrics not found
   });
 };
+
+export interface RecommendationShelf {
+  id: string;
+  title: string;
+  type: 'track-list';
+  items: Track[];
+}
+
+export interface ArtistResult {
+  id: string;
+  name: string;
+  thumbnail: string;
+  subscribers?: string;
+}
+
+// Algorithmic Home Shelves
+export const useHomeShelves = (enabled = true) => {
+  return useQuery({
+    queryKey: ['homeShelves'],
+    queryFn: async () => {
+      const { data } = await api.get('/recommendations/home');
+      return data as RecommendationShelf[];
+    },
+    enabled,
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};
+
+// Artist search for onboarding
+export const useArtistSearch = (query: string) => {
+  return useQuery({
+    queryKey: ['artistSearch', query],
+    queryFn: async () => {
+      if (!query || query.trim().length < 2) return [] as ArtistResult[];
+      const { data } = await api.get(`/recommendations/artists?q=${encodeURIComponent(query.trim())}`);
+      return data as ArtistResult[];
+    },
+    enabled: !!query && query.trim().length >= 2,
+    staleTime: 5 * 60 * 1000,
+  });
+};

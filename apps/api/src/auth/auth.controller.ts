@@ -76,6 +76,8 @@ export class AuthController {
         email: req.user.email,
         avatarUrl: req.user.avatarUrl,
         isEmailVerified: req.user.isEmailVerified,
+        hasCompletedOnboarding: req.user.hasCompletedOnboarding ?? false,
+        preferences: req.user.preferences,
       },
     };
   }

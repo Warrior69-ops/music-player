@@ -16,6 +16,8 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (hydrated && !user) {
       router.replace('/login');
+    } else if (hydrated && user && user.hasCompletedOnboarding === false) {
+      router.replace('/onboarding');
     }
   }, [user, router, hydrated]);
 
