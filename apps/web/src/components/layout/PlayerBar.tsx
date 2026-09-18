@@ -2,6 +2,7 @@
 
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Mic2, Heart, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useFavorites, useAddFavorite, useRemoveFavorite, useLyrics } from '@/hooks/queries';
@@ -17,6 +18,9 @@ function formatTime(seconds: number) {
 }
 
 export function PlayerBar() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const isLyricsPage = pathname === '/lyrics';
   const { currentTrack, isPlaying, volume, setVolume, playNext, playPrevious } = usePlayerStore();
   const { currentTime, duration, isLoading, togglePlay, seek } = useAudioPlayer();
   
@@ -25,8 +29,8 @@ export function PlayerBar() {
   const addFavorite = useAddFavorite();
   const removeFavorite = useRemoveFavorite();
 
-  const { data: lyricsData } = useLyrics(currentTrack?.title, currentTrack?.artist, currentTrack?.duration);
-  const hasLyrics = !!lyricsData?.syncedLyrics || !!lyricsData?.plainLyrics;
+  const { data: lyricsData, isLoading: isLyricsLoading } = useLyrics(currentTrack?.title, currentTrack?.artist, currentTrack?.duration);
+  const hasLyrics = !!lyricsData && lyricsData.lyrics && lyricsData.lyrics.length > 0;
 
   const isFavorite = currentTrack && favorites?.some(f => f.providerTrackId === currentTrack.providerTrackId);
 
@@ -120,12 +124,44 @@ export function PlayerBar() {
 
       {/* Actions & Volume */}
       <div className="w-1/3 flex items-center justify-end gap-3">
-        {currentTrack && hasLyrics ? (
-          <Link href="/lyrics" className="text-muted-foreground hover:text-white transition-colors hover:scale-110 active:scale-95" title="Lyrics">
-            <Mic2 className="w-5 h-5 text-primary" />
-          </Link>
+        {currentTrack ? (
+          isLyricsPage ? (
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push('/');
+                }
+              }}
+              className="transition-all duration-300 p-1.5 rounded-lg flex items-center justify-center hover:scale-110 active:scale-95 text-primary bg-primary/20 shadow-[0_0_15px_rgba(168,85,247,0.4)] ring-1 ring-primary/40 cursor-pointer"
+              title="Minimize Lyrics (Return to previous page)"
+            >
+              <Mic2 className="w-5 h-5 text-primary drop-shadow-[0_0_8px_rgba(168,85,247,0.9)]" />
+            </button>
+          ) : (
+            <Link
+              href="/lyrics"
+              className={`transition-all duration-300 p-1.5 rounded-lg flex items-center justify-center hover:scale-110 active:scale-95 ${
+                hasLyrics
+                  ? 'text-primary drop-shadow-[0_0_10px_rgba(168,85,247,0.85)] hover:text-white'
+                  : isLyricsLoading
+                  ? 'text-muted-foreground animate-pulse'
+                  : 'text-muted-foreground hover:text-white'
+              }`}
+              title={
+                hasLyrics
+                  ? 'Lyrics (Available)'
+                  : isLyricsLoading
+                  ? 'Searching lyrics...'
+                  : 'Lyrics'
+              }
+            >
+              <Mic2 className={`w-5 h-5 ${hasLyrics ? 'text-primary drop-shadow-[0_0_8px_rgba(168,85,247,0.9)]' : ''}`} />
+            </Link>
+          )
         ) : (
-          <div className="text-muted-foreground/30 cursor-not-allowed" title="No lyrics available">
+          <div className="text-muted-foreground/30 cursor-not-allowed p-1.5" title="No track playing">
             <Mic2 className="w-5 h-5" />
           </div>
         )}

@@ -10,6 +10,7 @@ import { EmailModule } from './email/email.module';
 import { AuthModule } from './auth/auth.module';
 import { ProvidersModule } from './providers/providers.module';
 import { MusicModule } from './music/music.module';
+import { LyricsModule } from './lyrics/lyrics.module';
 import { HistoryModule } from './history/history.module';
 import { PlaylistsModule } from './playlists/playlists.module';
 import { FavoritesModule } from './favorites/favorites.module';
@@ -33,6 +34,7 @@ import { FavoritesModule } from './favorites/favorites.module';
     MusicModule,
     PlaylistsModule,
     FavoritesModule,
+    LyricsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,11 +1,22 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useFavorites } from '@/hooks/queries';
 import { TrackCard } from '@/components/ui/TrackCard';
 import { Heart } from 'lucide-react';
+import api from '@/lib/api';
 
 export default function FavoritesPage() {
   const { data: favorites, isLoading } = useFavorites();
+
+  useEffect(() => {
+    if (favorites && favorites.length > 0) {
+      const topYoutubeTracks = favorites.filter(t => t.provider === 'youtube').slice(0, 3);
+      topYoutubeTracks.forEach(track => {
+        api.get(`/music/proxy/youtube/${track.providerTrackId}/prefetch`).catch(() => {});
+      });
+    }
+  }, [favorites]);
 
   return (
     <div className="p-8 pb-32">

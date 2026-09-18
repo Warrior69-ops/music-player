@@ -124,19 +124,23 @@ export const useAddTrackToPlaylist = () => {
   });
 };
 
+import { LyricsPayload } from '@/types/lyrics';
+
 // Lyrics
 export const useLyrics = (trackName?: string, artistName?: string, duration?: number) => {
   return useQuery({
     queryKey: ['lyrics', trackName, artistName],
     queryFn: async () => {
-      if (!trackName || !artistName) return null;
-      let url = `/music/lyrics?track=${encodeURIComponent(trackName)}&artist=${encodeURIComponent(artistName)}`;
+      if (!trackName) return null;
+      let url = `/lyrics?title=${encodeURIComponent(trackName)}`;
+      if (artistName) url += `&artist=${encodeURIComponent(artistName)}`;
       if (duration) url += `&duration=${Math.floor(duration)}`;
       
       const { data } = await api.get(url);
-      return data.data;
+      return data as LyricsPayload;
     },
-    enabled: !!trackName && !!artistName,
+    enabled: !!trackName,
+    staleTime: 1000 * 60 * 30, // 30 minutes
     retry: false, // Don't retry if lyrics not found
   });
 };

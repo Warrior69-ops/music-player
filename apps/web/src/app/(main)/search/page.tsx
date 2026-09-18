@@ -39,6 +39,18 @@ export default function SearchPage() {
     }
   }, [tracks]);
 
+  // KEY OPTIMIZATION: prefetch song suggestion IDs the moment they appear —
+  // before the user even finishes thinking. Starts yt-dlp 2-3s early!
+  useEffect(() => {
+    if (!suggestions) return;
+    suggestions
+      .filter((s): s is Extract<MusicSuggestion, { type: 'song' }> => s.type === 'song')
+      .slice(0, 3)
+      .forEach(s => {
+        api.get(`/music/proxy/youtube/${s.id}/prefetch`).catch(() => {});
+      });
+  }, [suggestions]);
+
   // Close suggestions when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
