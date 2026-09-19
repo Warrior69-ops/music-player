@@ -137,7 +137,7 @@ export default function HomePage() {
                     key={`${track.providerTrackId}-${trackIdx}`}
                     className="w-[180px] sm:w-[210px] flex-shrink-0 snap-start"
                   >
-                    <TrackCard track={track} />
+                    <TrackCard track={track} contextQueue={shelf.items} trackIndex={trackIdx} />
                   </div>
                 ))}
               </div>
@@ -179,7 +179,7 @@ export default function HomePage() {
                 key={`history-${track.providerTrackId}-${idx}`}
                 className="w-[180px] sm:w-[210px] flex-shrink-0 snap-start"
               >
-                <TrackCard track={track} />
+                <TrackCard track={track} contextQueue={history.slice(0, 15)} trackIndex={idx} />
               </div>
             ))}
           </div>

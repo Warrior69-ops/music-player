@@ -92,4 +92,55 @@ export class MusicService {
   async getLyrics(trackName: string, artistName: string, duration?: number) {
     return this.lrclibService.searchLyrics(trackName, artistName, undefined, duration);
   }
+
+  async getArtist(id: string) {
+    const cacheKey = `artist:${id.toLowerCase().trim()}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      this.logger.log(`Cache hit for artist: ${id}`);
+      return cached;
+    }
+
+    const { getArtistDetails } = await import('../scraper/youtubeScraper.js');
+    const details = await getArtistDetails(id);
+    if (!details) throw new BadRequestException(`Artist not found for id: ${id}`);
+
+    // Cache for 1 hour
+    await this.cacheManager.set(cacheKey, details, 3600000);
+    return details;
+  }
+
+  async getAlbum(id: string) {
+    const cacheKey = `album:${id.trim()}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      this.logger.log(`Cache hit for album: ${id}`);
+      return cached;
+    }
+
+    const { getAlbumDetails } = await import('../scraper/youtubeScraper.js');
+    const details = await getAlbumDetails(id);
+    if (!details) throw new BadRequestException(`Album not found for id: ${id}`);
+
+    // Cache for 1 hour
+    await this.cacheManager.set(cacheKey, details, 3600000);
+    return details;
+  }
+
+  async searchCategorized(query: string, type: 'all' | 'song' | 'album' | 'artist' | 'playlist' = 'all') {
+    const cacheKey = `search:${type}:${query.toLowerCase().trim()}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      this.logger.log(`Cache hit for categorized search (${type}): ${query}`);
+      return cached;
+    }
+
+    const { searchCategorized: ytSearch } = await import('../scraper/youtubeScraper.js');
+    const results = await ytSearch(query, type);
+
+    // Cache for 30 minutes
+    await this.cacheManager.set(cacheKey, results, 1800000);
+    return results;
+  }
 }
+

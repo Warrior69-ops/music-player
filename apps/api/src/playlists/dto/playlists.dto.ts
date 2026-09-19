@@ -26,6 +26,9 @@ export class UpdatePlaylistDto {
   @IsBoolean()
   @IsOptional()
   isPublic?: boolean;
+
+  @IsOptional()
+  tracks?: any[];
 }
 
 export class AddTrackDto {

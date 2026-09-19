@@ -20,8 +20,8 @@ export function useAutoplayObserver() {
 
     const remainingTracks = queue.length - 1 - currentIndex;
 
-    // Trigger fetch when 2 or fewer tracks remain ahead in the queue
-    if (remainingTracks <= 2 && !isFetchingRef.current) {
+    // Trigger fetch when 4 or fewer tracks remain ahead in the queue for seamless rapid skipping
+    if (remainingTracks <= 4 && !isFetchingRef.current) {
       // Use the last track or current track as seed for continuous radio discovery
       const anchorTrack: Track | undefined = queue[queue.length - 1] || queue[currentIndex];
       const anchorId = getTrackId(anchorTrack);

@@ -33,6 +33,8 @@ export interface PlayerState {
   isShuffle: boolean;
   isAutoplayEnabled: boolean;
   isQueueOpen: boolean;
+  isInstantLaunch: boolean;
+  warmedTrackIds: string[];
 
   // Core Actions
   setCurrentTrack: (track: Track) => void;
@@ -53,6 +55,8 @@ export interface PlayerState {
   toggleAutoplay: () => void;
   setIsQueueOpen: (open: boolean) => void;
   toggleQueue: () => void;
+  setIsInstantLaunch: (isInstant: boolean) => void;
+  addWarmedTrackId: (id: string) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -65,6 +69,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isShuffle: false,
   isAutoplayEnabled: true,
   isQueueOpen: false,
+  isInstantLaunch: false,
+  warmedTrackIds: [],
 
   setCurrentTrack: (track: Track) => {
     const { queue, originalQueue } = get();
@@ -334,4 +340,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set((state) => ({ isAutoplayEnabled: !state.isAutoplayEnabled })),
   setIsQueueOpen: (open: boolean) => set({ isQueueOpen: open }),
   toggleQueue: () => set((state) => ({ isQueueOpen: !state.isQueueOpen })),
+  setIsInstantLaunch: (isInstant: boolean) => set({ isInstantLaunch: isInstant }),
+  addWarmedTrackId: (id: string) =>
+    set((state) => ({
+      warmedTrackIds: state.warmedTrackIds.includes(id)
+        ? state.warmedTrackIds
+        : [...state.warmedTrackIds, id],
+    })),
 }));

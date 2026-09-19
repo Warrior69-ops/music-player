@@ -1,6 +1,6 @@
 'use client';
 
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Mic2, Heart, Plus, Shuffle, ListMusic } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Mic2, Heart, Plus, Shuffle, ListMusic, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { usePlayerStore } from '@/store/usePlayerStore';
@@ -33,6 +33,7 @@ export function PlayerBar() {
     toggleShuffle,
     isQueueOpen,
     toggleQueue,
+    isInstantLaunch,
   } = usePlayerStore();
   const { currentTime, duration, isLoading, togglePlay, seek } = useAudioPlayer();
   
@@ -90,8 +91,16 @@ export function PlayerBar() {
             <div className="w-8 h-8 rounded-full bg-white/10" />
           )}
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-medium text-white line-clamp-1">{currentTrack?.title || 'No track selected'}</span>
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-white line-clamp-1">{currentTrack?.title || 'No track selected'}</span>
+            {isInstantLaunch && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full animate-in fade-in zoom-in duration-200 shrink-0">
+                <Zap className="w-2.5 h-2.5 fill-current" />
+                0ms Instant
+              </span>
+            )}
+          </div>
           <span className="text-xs text-muted-foreground line-clamp-1">{currentTrack?.artist || 'Unknown Artist'}</span>
         </div>
       </div>

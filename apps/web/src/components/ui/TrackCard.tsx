@@ -1,30 +1,61 @@
 'use client';
 
 import React from 'react';
-import { Play } from 'lucide-react';
+import Link from 'next/link';
+import { Play, Zap } from 'lucide-react';
 import { usePlayerStore, Track } from '@/store/usePlayerStore';
 import { TrackMenu } from './TrackMenu';
+import { warmupStandbyTrack } from '@/hooks/useAudioPlayer';
 
 interface TrackCardProps {
   track: Track;
+  contextQueue?: Track[];
+  trackIndex?: number;
+  onRemoveFromPlaylist?: () => void;
 }
 
-export function TrackCard({ track }: TrackCardProps) {
-  const { setCurrentTrack } = usePlayerStore();
+export function TrackCard({ track, contextQueue, trackIndex, onRemoveFromPlaylist }: TrackCardProps) {
+  const { setCurrentTrack, setQueue, warmedTrackIds } = usePlayerStore();
+  const id = track.providerTrackId || track.id || '';
+  const isWarmed = Boolean(id && warmedTrackIds.includes(id));
 
   const handlePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCurrentTrack(track);
+    if (contextQueue && contextQueue.length > 0) {
+      const startIndex =
+        typeof trackIndex === 'number' && trackIndex >= 0
+          ? trackIndex
+          : contextQueue.findIndex((t) => (t.providerTrackId || t.id) === id);
+      setQueue(contextQueue, startIndex !== -1 ? startIndex : 0);
+    } else {
+      setCurrentTrack(track);
+    }
+  };
+
+  const handleWarmup = () => {
+    warmupStandbyTrack(track);
   };
 
   return (
     <div
       onClick={handlePlay}
-      className="group relative bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 transition-colors cursor-pointer"
+      onMouseEnter={handleWarmup}
+      onPointerDown={handleWarmup}
+      className={`group relative bg-white/5 border rounded-xl overflow-hidden hover:bg-white/10 transition-all duration-200 cursor-pointer ${
+        isWarmed ? 'border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : 'border-white/10'
+      }`}
     >
+      {/* ⚡ Instant Play Ready Badge */}
+      {isWarmed && (
+        <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 text-[10px] font-semibold backdrop-blur-md shadow-lg animate-in fade-in zoom-in duration-200">
+          <Zap className="w-2.5 h-2.5 fill-current" />
+          <span>Instant</span>
+        </div>
+      )}
+
       {/* 3-Dot Context Menu in Top-Right Corner */}
       <div className="absolute top-2.5 right-2.5 z-20">
-        <TrackMenu track={track} />
+        <TrackMenu track={track} onRemoveFromPlaylist={onRemoveFromPlaylist} />
       </div>
 
       <div className="aspect-square relative overflow-hidden">
@@ -58,7 +89,17 @@ export function TrackCard({ track }: TrackCardProps) {
           {track.title}
         </h3>
         <p className="text-xs text-muted-foreground truncate mt-0.5" title={track.artist}>
-          {track.artist}
+          {track.artist ? (
+            <Link
+              href={`/artist/${encodeURIComponent((track as any).artistId || track.artist)}`}
+              onClick={(e) => e.stopPropagation()}
+              className="hover:text-white hover:underline transition-colors"
+            >
+              {track.artist}
+            </Link>
+          ) : (
+            'Unknown Artist'
+          )}
         </p>
       </div>
     </div>

@@ -188,3 +188,86 @@ export const useArtistSearch = (query: string) => {
     staleTime: 5 * 60 * 1000,
   });
 };
+
+export interface ArtistData {
+  id: string;
+  name: string;
+  subscribers: string;
+  description: string;
+  thumbnail: string;
+  topSongs: Track[];
+  singles: Array<{ id: string; title: string; year: string; thumbnail: string; type: string }>;
+  albums: Array<{ id: string; title: string; year: string; thumbnail: string; type: string }>;
+}
+
+export const useArtist = (artistId: string) => {
+  return useQuery({
+    queryKey: ['artist', artistId],
+    queryFn: async () => {
+      if (!artistId) return null;
+      const { data } = await api.get(`/music/artist/${encodeURIComponent(artistId)}`);
+      return data.data as ArtistData;
+    },
+    enabled: !!artistId,
+    staleTime: 30 * 60 * 1000, // 30 minutes
+  });
+};
+
+export interface AlbumData {
+  id: string;
+  title: string;
+  artist: string;
+  artistId?: string;
+  year?: string;
+  trackCount: number;
+  duration?: string;
+  thumbnail: string;
+  description?: string;
+  tracks: Track[];
+}
+
+export const useAlbum = (albumId: string) => {
+  return useQuery({
+    queryKey: ['album', albumId],
+    queryFn: async () => {
+      if (!albumId) return null;
+      const { data } = await api.get(`/music/album/${encodeURIComponent(albumId)}`);
+      return data.data as AlbumData;
+    },
+    enabled: !!albumId,
+    staleTime: 30 * 60 * 1000, // 30 minutes
+  });
+};
+
+export interface CategorizedSearchResults {
+  topResult?: {
+    type: 'artist' | 'song';
+    id: string;
+    name?: string;
+    title?: string;
+    artist?: string;
+    subscribers?: string;
+    thumbnail?: string;
+    albumArt?: string;
+    providerTrackId?: string;
+    duration?: number;
+  };
+  songs: Track[];
+  albums: Array<{ id: string; title: string; artist: string; year: string; thumbnail: string; type: string }>;
+  artists: Array<{ id: string; name: string; subscribers: string; thumbnail: string }>;
+  playlists: Array<{ id: string; title: string; author: string; itemCount: string; thumbnail: string }>;
+}
+
+export const useCategorizedSearch = (query: string, type: 'all' | 'song' | 'album' | 'artist' | 'playlist' = 'all') => {
+  return useQuery({
+    queryKey: ['categorizedSearch', query, type],
+    queryFn: async () => {
+      if (!query || !query.trim()) return null;
+      const { data } = await api.get(`/music/search?q=${encodeURIComponent(query.trim())}&type=${type}`);
+      return data.data as CategorizedSearchResults;
+    },
+    enabled: !!query && query.trim().length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+

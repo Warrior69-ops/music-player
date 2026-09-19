@@ -3,7 +3,7 @@ import { MusicService } from './music.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { Response, Request } from 'express';
 import { Readable } from 'node:stream';
-import { YtDlpDaemonService } from './ytdlp-daemon.service';
+import { YtDlpDaemonService, keepAliveAgent } from './ytdlp-daemon.service';
 
 @Controller('music')
 export class MusicController {
@@ -15,19 +15,48 @@ export class MusicController {
   // ── Endpoints ───────────────────────────────────────────────────────────────
 
   @Get('search')
-  async search(@Query('q') query: string) {
+  async search(@Query('q') query: string, @Query('type') type?: string) {
     if (!query) throw new BadRequestException('Query parameter "q" is required');
+
+    // If a specific category or 'all' is requested
+    if (type && ['all', 'album', 'artist', 'playlist'].includes(type)) {
+      const data = await this.musicService.searchCategorized(query, type as any);
+      return { success: true, data };
+    }
 
     const data = await this.musicService.searchTracks(query);
 
-    // Immediately prefetch top 3 results in parallel
-    if (data?.length) {
-      data.slice(0, 3)
-        .map((t: any) => t.providerTrackId)
-        .filter(Boolean)
-        .forEach((id: string) => this.ytDlp.prefetch(id));
+    // Only prefetch the #1 top match so daemon queue remains completely clear for user hover/click
+    if (data?.length && data[0]?.providerTrackId) {
+      this.ytDlp.prefetch(data[0].providerTrackId);
     }
 
+    return { success: true, data };
+  }
+
+  @Get('artist/:id')
+  async getArtist(@Param('id') id: string) {
+    if (!id) throw new BadRequestException('Artist ID is required');
+    const data = (await this.musicService.getArtist(id)) as any;
+    if (data?.topSongs?.length) {
+      const ids = data.topSongs
+        .map((s: any) => s.providerTrackId)
+        .filter(Boolean);
+      this.ytDlp.prefetchBatch(ids);
+    }
+    return { success: true, data };
+  }
+
+  @Get('album/:id')
+  async getAlbum(@Param('id') id: string) {
+    if (!id) throw new BadRequestException('Album ID is required');
+    const data = (await this.musicService.getAlbum(id)) as any;
+    if (data?.tracks?.length) {
+      const ids = data.tracks
+        .map((t: any) => t.providerTrackId)
+        .filter(Boolean);
+      this.ytDlp.prefetchBatch(ids);
+    }
     return { success: true, data };
   }
 
@@ -44,7 +73,7 @@ export class MusicController {
 
   @Get('suggest')
   async getSuggestions(@Query('q') query: string) {
-    if (!query || query.length < 2) return { success: true, data: [] };
+    if (!query || query.trim().length < 2) return { success: true, data: [] };
     try {
       const { getClient } = await import('../scraper/youtubeScraper.js');
       const yt = await getClient();
@@ -69,9 +98,6 @@ export class MusicController {
         }
       }
 
-      // Prefetch song suggestions eagerly — user is likely to click one!
-      songSuggestions.slice(0, 3).forEach(s => this.ytDlp.prefetch(s.id));
-
       return {
         success: true,
         data: [...textSuggestions.slice(0, 5), ...songSuggestions.slice(0, 4)],
@@ -85,7 +111,18 @@ export class MusicController {
   async prefetchYoutubeStream(@Param('id') id: string) {
     if (!id) throw new BadRequestException('Missing YouTube ID');
     this.ytDlp.prefetch(id);
-    return { success: true, message: 'Prefetch initiated' };
+    return { success: true, message: 'Prefetch initiated', cached: this.ytDlp.cache.has(id) };
+  }
+
+  @Get('proxy/youtube/:id/status')
+  async getStreamStatus(@Param('id') id: string) {
+    if (!id) throw new BadRequestException('Missing YouTube ID');
+    const cached = this.ytDlp.cache.get(id);
+    return {
+      success: true,
+      ready: !!cached?.url,
+      hasFirstChunk: !!cached?.firstChunk,
+    };
   }
 
   @Get('proxy/youtube/:id')
@@ -93,10 +130,59 @@ export class MusicController {
     if (!id) throw new BadRequestException('Missing YouTube ID');
 
     try {
-      // Resolve — instant cache hit if prefetched, otherwise ~3s first time
-      const cached = await this.ytDlp.resolve(id);
+      // Resolve — instant cache hit if prefetched, otherwise prioritized HIGH in daemon
+      const cached = await this.ytDlp.resolve(id, 'HIGH');
       if (!cached?.url) throw new Error('Failed to fetch stream URL');
 
+      const rangeHeader = req.headers.range;
+
+      // ── Instant First-Chunk RAM Dispatch (< 15ms TTFB) ──────────────────────
+      // If client requests from byte 0 (or standard initial start), and firstChunk is buffered in RAM:
+      if ((!rangeHeader || rangeHeader === 'bytes=0-' || rangeHeader.startsWith('bytes=0-')) && cached.firstChunk) {
+        const chunkSize = cached.firstChunk.length;
+        const total = cached.totalLength || '';
+
+        res.status(206);
+        res.setHeader('Content-Type', cached.firstChunkHeaders?.['content-type'] || 'audio/webm');
+        res.setHeader('Accept-Ranges', 'bytes');
+        if (total) {
+          res.setHeader('Content-Range', `bytes 0-${total - 1}/${total}`);
+          res.setHeader('Content-Length', total);
+        }
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+
+        // Immediately write the first 256 KB from RAM (< 15ms TTFB!)
+        res.write(cached.firstChunk);
+
+        // Pipe the remainder of the stream starting from byte `chunkSize`
+        const upstreamHeaders: Record<string, string> = {
+          ...cached.headers,
+          'Range': `bytes=${chunkSize}-`,
+        };
+
+        const abort = new AbortController();
+        req.on('close', () => abort.abort());
+
+        const upstreamRes = await fetch(cached.url, {
+          headers: upstreamHeaders,
+          signal: abort.signal,
+          // @ts-ignore
+          dispatcher: keepAliveAgent,
+        });
+
+        if (upstreamRes.body) {
+          // @ts-ignore
+          const readable = Readable.fromWeb(upstreamRes.body);
+          readable.on('error', () => { if (!res.headersSent) res.status(500).end(); });
+          readable.pipe(res);
+        } else {
+          res.end();
+        }
+        return;
+      }
+
+      // ── Standard Range Request with Persistent Keep-Alive Dispatcher ──────────
       const upstreamHeaders: Record<string, string> = { ...cached.headers };
       if (req.headers.range) upstreamHeaders['Range'] = req.headers.range;
 
@@ -104,7 +190,12 @@ export class MusicController {
       req.on('close', () => abort.abort());
 
       console.log(`[StreamProxy] ${id} | Range: ${req.headers.range ?? 'none'}`);
-      const upstreamRes = await fetch(cached.url, { headers: upstreamHeaders, signal: abort.signal });
+      const upstreamRes = await fetch(cached.url, {
+        headers: upstreamHeaders,
+        signal: abort.signal,
+        // @ts-ignore
+        dispatcher: keepAliveAgent,
+      });
 
       if (!upstreamRes.ok && upstreamRes.status !== 206) {
         console.error(`[StreamProxy] Upstream ${upstreamRes.status} for ${id}`, {

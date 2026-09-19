@@ -8,6 +8,7 @@ import {
   ListPlus,
   Heart,
   Plus,
+  Trash2,
 } from 'lucide-react';
 import { usePlayerStore, Track } from '@/store/usePlayerStore';
 import { useFavorites, useAddFavorite, useRemoveFavorite } from '@/hooks/queries';
@@ -18,12 +19,14 @@ interface TrackMenuProps {
   track: Track;
   className?: string;
   triggerClassName?: string;
+  onRemoveFromPlaylist?: () => void;
 }
 
 export const TrackMenu: React.FC<TrackMenuProps> = ({
   track,
   className = '',
   triggerClassName = '',
+  onRemoveFromPlaylist,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
@@ -215,6 +218,24 @@ export const TrackMenu: React.FC<TrackMenuProps> = ({
               <Plus className="w-3.5 h-3.5 text-zinc-400" />
               <span>Add to Playlist</span>
             </button>
+
+            {/* Remove from this Playlist */}
+            {onRemoveFromPlaylist && (
+              <>
+                <div className="my-1 border-t border-white/10" />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveFromPlaylist();
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left group"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-red-400 group-hover:scale-110 transition-transform" />
+                  <span>Remove from playlist</span>
+                </button>
+              </>
+            )}
           </div>,
           document.body
         )}
