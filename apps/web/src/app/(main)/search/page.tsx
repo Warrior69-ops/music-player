@@ -51,6 +51,7 @@ export default function SearchPage() {
   const [searchTrigger, setSearchTrigger] = useState('');
   const [category, setCategory] = useState<SearchCategory>('all');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -62,6 +63,11 @@ export default function SearchPage() {
   const { data: suggestions = [] } = useSuggestMusic(debouncedQuery);
   const { data: results, isLoading } = useCategorizedSearch(searchTrigger, category);
 
+  // Suggestions partitioned & flattened for keyboard navigation
+  const querySuggestions = suggestions.filter((s): s is Extract<MusicSuggestion, { type: 'query' }> => s.type === 'query');
+  const songSuggestions = suggestions.filter((s): s is Extract<MusicSuggestion, { type: 'song' }> => s.type === 'song');
+  const allSuggestions = [...querySuggestions, ...songSuggestions];
+
   // Close suggestions when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -72,6 +78,7 @@ export default function SearchPage() {
         !inputRef.current.contains(e.target as Node)
       ) {
         setShowSuggestions(false);
+        setSelectedIndex(-1);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -83,11 +90,21 @@ export default function SearchPage() {
     setQuery(q);
     setSearchTrigger(q);
     setShowSuggestions(false);
+    setSelectedIndex(-1);
     inputRef.current?.blur();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (showSuggestions && selectedIndex >= 0 && selectedIndex < allSuggestions.length) {
+      const selected = allSuggestions[selectedIndex];
+      if (selected.type === 'query') {
+        handleSearch(selected.text);
+      } else if (selected.type === 'song') {
+        handleSearch(selected.title);
+      }
+      return;
+    }
     handleSearch(query);
   };
 
@@ -95,6 +112,7 @@ export default function SearchPage() {
     setQuery('');
     setSearchTrigger('');
     setShowSuggestions(false);
+    setSelectedIndex(-1);
     inputRef.current?.focus();
   };
 
@@ -131,13 +149,34 @@ export default function SearchPage() {
               onChange={(e) => {
                 setQuery(e.target.value);
                 setShowSuggestions(true);
+                setSelectedIndex(-1);
               }}
               onFocus={() => {
                 if (query.length >= 2) setShowSuggestions(true);
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Escape') {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  if (!showSuggestions && allSuggestions.length > 0) {
+                    setShowSuggestions(true);
+                  }
+                  setSelectedIndex((prev) => (prev < allSuggestions.length - 1 ? prev + 1 : 0));
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setSelectedIndex((prev) => (prev > 0 ? prev - 1 : allSuggestions.length - 1));
+                } else if (e.key === 'Enter') {
+                  if (showSuggestions && selectedIndex >= 0 && selectedIndex < allSuggestions.length) {
+                    e.preventDefault();
+                    const selected = allSuggestions[selectedIndex];
+                    if (selected.type === 'query') {
+                      handleSearch(selected.text);
+                    } else if (selected.type === 'song') {
+                      handleSearch(selected.title);
+                    }
+                  }
+                } else if (e.key === 'Escape') {
                   setShowSuggestions(false);
+                  setSelectedIndex(-1);
                   inputRef.current?.blur();
                 }
               }}
@@ -165,10 +204,10 @@ export default function SearchPage() {
         {hasSuggestions && (
           <div
             ref={suggestionsRef}
-            className="absolute left-0 right-0 z-50 border border-white/10 border-t-0 rounded-b-2xl shadow-2xl overflow-hidden"
+            className="absolute left-0 right-0 z-50 border border-white/10 border-t-0 rounded-b-2xl shadow-2xl overflow-hidden max-h-[420px] overflow-y-auto"
             style={{ background: 'rgba(15,15,30,0.97)', backdropFilter: 'blur(24px)' }}
           >
-            {suggestions.some((s) => s.type === 'query') && (
+            {querySuggestions.length > 0 && (
               <div className="px-4 pt-2 pb-1">
                 <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                   Suggestions
@@ -176,54 +215,76 @@ export default function SearchPage() {
               </div>
             )}
 
-            {suggestions
-              .filter((s): s is Extract<MusicSuggestion, { type: 'query' }> => s.type === 'query')
-              .map((s, i) => (
+            {querySuggestions.map((s, i) => {
+              const isSelected = selectedIndex === i;
+              return (
                 <button
                   key={`q-${i}`}
+                  ref={(node) => {
+                    if (isSelected && node) {
+                      node.scrollIntoView({ block: 'nearest' });
+                    }
+                  }}
                   type="button"
-                  className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-white/8 transition-colors group cursor-pointer"
+                  className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors group cursor-pointer ${
+                    isSelected
+                      ? 'bg-purple-500/25 text-white border-l-2 border-primary'
+                      : 'hover:bg-white/8 text-foreground/90'
+                  }`}
                   onClick={() => handleSearch(s.text)}
+                  onMouseEnter={() => setSelectedIndex(i)}
                   onMouseDown={(e) => e.preventDefault()}
                 >
-                  <SearchIcon className="h-4 w-4 text-muted-foreground/60 shrink-0 group-hover:text-primary transition-colors" />
-                  <span className="text-sm text-foreground/90">
+                  <SearchIcon className={`h-4 w-4 shrink-0 transition-colors ${isSelected ? 'text-primary' : 'text-muted-foreground/60 group-hover:text-primary'}`} />
+                  <span className="text-sm">
                     <span className="text-primary font-medium">{query}</span>
                     {s.text.slice(query.length)}
                   </span>
                   <ArrowUpLeft className="h-3.5 w-3.5 text-muted-foreground/30 ml-auto shrink-0" />
                 </button>
-              ))}
+              );
+            })}
 
-            {suggestions.some((s) => s.type === 'song') && (
+            {songSuggestions.length > 0 && (
               <>
                 <div className="px-4 pt-3 pb-1 border-t border-white/5">
                   <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                     Songs
                   </span>
                 </div>
-                {suggestions
-                  .filter((s): s is Extract<MusicSuggestion, { type: 'song' }> => s.type === 'song')
-                  .map((s, i) => (
+                {songSuggestions.map((s, i) => {
+                  const globalIdx = querySuggestions.length + i;
+                  const isSelected = selectedIndex === globalIdx;
+                  return (
                     <button
                       key={`s-${i}`}
+                      ref={(node) => {
+                        if (isSelected && node) {
+                          node.scrollIntoView({ block: 'nearest' });
+                        }
+                      }}
                       type="button"
-                      className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-white/8 transition-colors group cursor-pointer"
+                      className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors group cursor-pointer ${
+                        isSelected
+                          ? 'bg-purple-500/25 text-white border-l-2 border-primary'
+                          : 'hover:bg-white/8 text-foreground/90'
+                      }`}
                       onClick={() => handleSearch(s.title)}
+                      onMouseEnter={() => setSelectedIndex(globalIdx)}
                       onMouseDown={(e) => e.preventDefault()}
-                      onMouseEnter={() => api.get(`/music/proxy/youtube/${s.id}/prefetch`).catch(() => {})}
                     >
                       <div className="w-8 h-8 rounded-md bg-primary/20 flex items-center justify-center shrink-0">
                         <Music2 className="h-4 w-4 text-primary" />
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-medium text-foreground truncate">{s.title}</span>
+                        <span className="text-sm font-medium truncate">{s.title}</span>
                         {s.artist && (
                           <span className="text-xs text-muted-foreground truncate">{s.artist}</span>
                         )}
                       </div>
                     </button>
-                  ))}
+                  );
+                })}
               </>
             )}
 
@@ -243,8 +304,8 @@ export default function SearchPage() {
                 onClick={() => setCategory(cat.id)}
                 className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-[0_2px_12px_rgba(236,72,153,0.35)] scale-105'
-                    : 'bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 hover:border-white/20'
+                    ? 'bg-gradient-to-r from-purple-400 via-primary to-purple-200 text-black shadow-[0_2px_16px_rgba(168,85,247,0.5)] font-bold scale-105'
+                    : 'glass-pill text-purple-200/70 hover:text-white border border-purple-500/20 hover:border-purple-400/40'
                 }`}
               >
                 {cat.label}
@@ -314,7 +375,7 @@ export default function SearchPage() {
 
                         <Link
                           href={`/artist/${encodeURIComponent(topResult.id)}`}
-                          className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-primary text-primary-foreground font-bold text-xs shadow-md hover:scale-105 transition-transform"
+                          className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-tr from-purple-400 via-primary to-purple-200 text-black font-bold text-xs shadow-md hover:scale-105 transition-transform"
                         >
                           <span>View Artist</span>
                           <ChevronRight className="w-3.5 h-3.5" />
@@ -322,8 +383,8 @@ export default function SearchPage() {
                       </div>
                     </div>
                   ) : topResult.type === 'song' ? (
-                    <div className="flex items-center gap-5 p-5 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-primary/40 transition-all max-w-xl shadow-xl">
-                      <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-black/50 shadow">
+                    <div className="flex items-center gap-5 p-5 rounded-2xl glass-panel border border-purple-500/20 hover:border-purple-400/40 transition-all max-w-xl shadow-xl">
+                      <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-purple-950/40 shadow border border-purple-500/20">
                         {topResult.albumArt ? (
                           <Image
                             src={topResult.albumArt}
@@ -334,20 +395,20 @@ export default function SearchPage() {
                             sizes="80px"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-primary/20">
-                            <Music2 className="w-8 h-8 text-primary" />
+                          <div className="w-full h-full flex items-center justify-center bg-purple-500/20">
+                            <Music2 className="w-8 h-8 text-purple-300" />
                           </div>
                         )}
                       </div>
 
                       <div className="flex flex-col min-w-0 flex-1">
-                        <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px] uppercase font-bold text-primary w-fit mb-1.5">
+                        <span className="px-2 py-0.5 rounded-full glass-pill text-[10px] uppercase font-bold text-purple-300 border border-purple-500/30 w-fit mb-1.5">
                           Song
                         </span>
                         <span className="text-lg font-bold text-white truncate">
                           {topResult.title}
                         </span>
-                        <span className="text-xs text-muted-foreground truncate mb-3">
+                        <span className="text-xs text-purple-300/70 truncate mb-3">
                           {topResult.artist}
                         </span>
 
@@ -355,7 +416,7 @@ export default function SearchPage() {
                           onClick={() => {
                             if (songs[0]) setQueue(songs, 0);
                           }}
-                          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary text-primary-foreground font-bold text-xs w-fit shadow hover:scale-105 transition-transform cursor-pointer"
+                          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-tr from-purple-400 via-primary to-purple-200 text-black font-bold text-xs w-fit shadow-md hover:scale-105 transition-transform cursor-pointer"
                         >
                           <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
                           <span>Play</span>

@@ -19,6 +19,7 @@ import { usePlayerStore, Track, getTrackId } from '@/store/usePlayerStore';
 import { TrackMenu } from '@/components/ui/TrackMenu';
 import { smartShuffleTracks } from '@/lib/smartShuffle';
 import { warmupStandbyTrack } from '@/hooks/useAudioPlayer';
+import { EqualizerBars } from '@/components/ui/EqualizerBars';
 import api from '@/lib/api';
 
 function formatDuration(sec?: number) {
@@ -80,19 +81,21 @@ export default function AlbumPage() {
     );
   }
 
+  const albumSource = { type: 'album' as const, name: album.title, id: album.id };
+
   const handlePlayAll = () => {
     if (tracks.length === 0) return;
-    setQueue(tracks, 0);
+    setQueue(tracks, 0, albumSource);
   };
 
   const handleSmartShuffle = () => {
     if (tracks.length === 0) return;
     const shuffled = smartShuffleTracks(tracks);
-    setQueue(shuffled, 0);
+    setQueue(shuffled, 0, albumSource);
   };
 
   const handlePlayTrack = (trackIndex: number) => {
-    setQueue(tracks, trackIndex);
+    setQueue(tracks, trackIndex, albumSource);
   };
 
   const handlePrefetch = (trackId: string) => {
@@ -191,7 +194,7 @@ export default function AlbumPage() {
                 onClick={handlePlayAll}
                 onMouseEnter={() => tracks[0] && warmupStandbyTrack(tracks[0])}
                 onPointerDown={() => tracks[0] && warmupStandbyTrack(tracks[0])}
-                className="flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-[0_4px_24px_rgba(236,72,153,0.4)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                className="flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-gradient-to-tr from-purple-400 via-primary to-purple-200 text-black font-bold text-sm shadow-[0_4px_24px_rgba(168,85,247,0.5)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
               >
                 <Play className="w-4 h-4 fill-current ml-0.5" />
                 <span>Play All</span>
@@ -201,9 +204,9 @@ export default function AlbumPage() {
                 onClick={handleSmartShuffle}
                 onMouseEnter={() => tracks[0] && warmupStandbyTrack(tracks[0])}
                 onPointerDown={() => tracks[0] && warmupStandbyTrack(tracks[0])}
-                className="flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-white/10 hover:bg-white/15 text-white font-semibold text-sm backdrop-blur-md border border-white/10 hover:border-white/20 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                className="flex items-center gap-2.5 px-7 py-3.5 rounded-full glass-pill hover:bg-white/15 text-white font-semibold text-sm border border-purple-500/30 hover:border-purple-400/50 hover:scale-105 active:scale-95 transition-all cursor-pointer"
               >
-                <Shuffle className="w-4 h-4" />
+                <Shuffle className="w-4 h-4 text-purple-300" />
                 <span>Smart Shuffle</span>
               </button>
             </div>
@@ -214,7 +217,7 @@ export default function AlbumPage() {
       {/* ── Tracklist Section ───────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-6 md:px-10 mt-6">
         {/* Table Header */}
-        <div className="grid grid-cols-[3rem_1fr_4rem_3rem] items-center px-4 py-2.5 border-b border-white/10 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-2">
+        <div className="grid grid-cols-[3rem_1fr_4rem_3rem] items-center px-4 py-2.5 border-b border-purple-500/20 text-xs font-semibold uppercase tracking-wider text-purple-300/60 mb-2">
           <span className="text-center">#</span>
           <span>Title</span>
           <span className="text-right">Time</span>
@@ -233,19 +236,19 @@ export default function AlbumPage() {
                 onMouseEnter={() => warmupStandbyTrack(track)}
                 onPointerDown={() => warmupStandbyTrack(track)}
                 onClick={() => handlePlayTrack(idx)}
-                className={`group grid grid-cols-[3rem_1fr_4rem_3rem] items-center px-4 py-3 rounded-xl transition-all duration-150 cursor-pointer border ${
+                className={`group grid grid-cols-[3rem_1fr_4rem_3rem] items-center px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer border ${
                   isCurrent
-                    ? 'bg-white/10 border-primary/40 shadow-[0_4px_20px_rgba(236,72,153,0.15)]'
-                    : 'bg-white/[0.01] hover:bg-white/[0.06] border-transparent'
+                    ? 'glass-card border-purple-500/60 ring-1 ring-purple-500/40 shadow-[0_4px_20px_rgba(139,92,246,0.25)] bg-purple-950/30'
+                    : 'bg-white/[0.01] hover:bg-purple-950/20 border-transparent hover:border-purple-500/20'
                 }`}
               >
-                {/* Number / Play Button Overlay */}
+                {/* Number / Animated Equalizer Bars / Play Button */}
                 <div className="flex items-center justify-center">
                   {isTrackPlaying ? (
-                    <Volume2 className="w-4 h-4 text-primary animate-pulse" />
+                    <EqualizerBars isPlaying={isTrackPlaying} size="xs" />
                   ) : (
                     <>
-                      <span className={`text-sm font-semibold group-hover:hidden ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`}>
+                      <span className={`text-sm font-semibold group-hover:hidden ${isCurrent ? 'text-purple-400' : 'text-purple-300/60'}`}>
                         {idx + 1}
                       </span>
                       <Play className="w-4 h-4 fill-white text-white hidden group-hover:block ml-0.5" />

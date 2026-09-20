@@ -1,72 +1,108 @@
 'use client';
 
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Mic2, Heart, Plus, Shuffle, ListMusic, Zap } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  VolumeX,
+  Mic2,
+  Heart,
+  Plus,
+  Shuffle,
+  ListMusic,
+  Sparkles,
+  ChevronUp,
+  ChevronDown,
+  MoreVertical,
+  Share2,
+  Disc,
+  ExternalLink,
+  User,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useFavorites, useAddFavorite, useRemoveFavorite, useLyrics } from '@/hooks/queries';
-import { useState } from 'react';
-import { toast } from 'sonner';
 import { useUIStore } from '@/store/useUIStore';
-
-function formatTime(seconds: number) {
-  if (!seconds || isNaN(seconds)) return '0:00';
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
+import { EqualizerBars } from '@/components/ui/EqualizerBars';
+import { ZigzagProgressBar } from '@/components/ui/ZigzagProgressBar';
+import { toast } from 'sonner';
 
 export function PlayerBar() {
   const router = useRouter();
   const pathname = usePathname();
   const isLyricsPage = pathname === '/lyrics';
+  const isNowPlaying = pathname === '/now-playing';
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const {
     currentTrack,
     isPlaying,
     volume,
     setVolume,
-    playNext,
     nextTrack,
     playPrevious,
     isShuffle,
     toggleShuffle,
     isQueueOpen,
     toggleQueue,
-    isInstantLaunch,
+    crossfadeDuration,
+    setCrossfadeDuration,
   } = usePlayerStore();
+
   const { currentTime, duration, isLoading, togglePlay, seek } = useAudioPlayer();
-  
-  const { openPlaylistModal } = useUIStore();
+  const { openPlaylistModal, previousPath, setPreviousPath } = useUIStore();
   const { data: favorites } = useFavorites();
   const addFavorite = useAddFavorite();
   const removeFavorite = useRemoveFavorite();
 
-  const { data: lyricsData, isLoading: isLyricsLoading } = useLyrics(currentTrack?.title, currentTrack?.artist, currentTrack?.duration);
+  const { data: lyricsData, isLoading: isLyricsLoading } = useLyrics(
+    currentTrack?.title,
+    currentTrack?.artist,
+    currentTrack?.duration
+  );
   const hasLyrics = !!lyricsData && lyricsData.lyrics && lyricsData.lyrics.length > 0;
 
-  const isFavorite = currentTrack && favorites?.some(f => f.providerTrackId === currentTrack.providerTrackId);
+  const isFavorite = Boolean(
+    currentTrack &&
+      favorites?.some(
+        (f) =>
+          f.providerTrackId ===
+          (currentTrack.providerTrackId || currentTrack.id)
+      )
+  );
+
+  // Close 3-dots menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMenuOpen]);
 
   const handleFavoriteToggle = () => {
     if (!currentTrack) return;
+    const trackId = currentTrack.providerTrackId || currentTrack.id || '';
     if (isFavorite) {
-      removeFavorite.mutate(currentTrack.providerTrackId, {
-        onSuccess: () => toast.success('Removed from favorites')
+      removeFavorite.mutate(trackId, {
+        onSuccess: () => toast.success('Removed from favorites'),
       });
     } else {
       addFavorite.mutate(currentTrack, {
-        onSuccess: () => toast.success('Added to favorites')
+        onSuccess: () => toast.success('Added to favorites'),
       });
     }
-  };
-
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
-
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!duration) return;
-    const bounds = e.currentTarget.getBoundingClientRect();
-    const percent = (e.clientX - bounds.left) / bounds.width;
-    seek(percent * duration);
   };
 
   const handleVolumeClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -80,162 +116,382 @@ export function PlayerBar() {
     else setVolume(1);
   };
 
+  const cycleCrossfade = () => {
+    const durations = [0, 3, 5, 7, 10];
+    const currentIndex = durations.indexOf(crossfadeDuration);
+    const nextDuration = durations[(currentIndex + 1) % durations.length];
+    setCrossfadeDuration(nextDuration);
+    if (nextDuration === 0) {
+      toast.info('Apple Music Crossfade disabled');
+    } else {
+      toast.success(`Apple Music Crossfade set to ${nextDuration}s`);
+    }
+  };
+
+  const toggleNowPlaying = () => {
+    if (!currentTrack) return;
+    if (isNowPlaying) {
+      const dest = previousPath && previousPath !== '/now-playing' ? previousPath : '/';
+      router.push(dest);
+    } else {
+      setPreviousPath(pathname);
+      router.push('/now-playing');
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (!currentTrack) return;
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Track link copied to clipboard');
+      setIsMenuOpen(false);
+    }
+  };
+
   return (
-    <div className="h-24 glass border-t border-white/10 flex items-center justify-between px-6 z-50">
-      {/* Track Info */}
-      <div className="w-1/3 flex items-center gap-4">
-        <div className="w-14 h-14 bg-white/5 rounded-md flex items-center justify-center overflow-hidden border border-white/10">
-          {currentTrack?.albumArt ? (
-            <img src={currentTrack.albumArt} alt="Album Art" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-white/10" />
+    <div className="relative px-3 pb-2.5 pt-0 z-50 select-none">
+      {/* Refined Dock Matching Dark Background Shade */}
+      <div className="h-24 glass-dock rounded-2xl flex items-center justify-between px-6 transition-all duration-300">
+        {/* ── Left Section: Track Info, Favorite & 3-Dots Menu ──────────── */}
+        <div className="w-[30%] flex items-center gap-3 min-w-0">
+          {/* Clickable Album Thumbnail (Opens Now Playing) */}
+          <div
+            onClick={toggleNowPlaying}
+            className="relative w-13 h-13 rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-sm shrink-0 group cursor-pointer hover:border-purple-500/50 transition-all hover:scale-105 active:scale-95"
+            title={isNowPlaying ? 'Now Playing screen open' : 'Click to open Now Playing'}
+          >
+            {currentTrack?.albumArt ? (
+              <img
+                src={currentTrack.albumArt}
+                alt={currentTrack.title}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-white/5">
+                <div className="w-5 h-5 rounded-full bg-white/10" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <ChevronUp className="w-4 h-4 text-white drop-shadow" />
+            </div>
+          </div>
+
+          {/* Title & Artist */}
+          <div className="flex flex-col min-w-0 justify-center flex-1">
+            <div className="flex items-center gap-2 min-w-0">
+              {currentTrack && (
+                <div className="shrink-0 flex items-center" title={isPlaying ? 'Playing' : 'Paused'}>
+                  <EqualizerBars isPlaying={isPlaying} size="xs" />
+                </div>
+              )}
+              <span
+                onClick={toggleNowPlaying}
+                className="text-sm font-semibold text-white truncate tracking-tight hover:text-purple-200 transition-colors cursor-pointer"
+                title={currentTrack?.title || 'No track playing'}
+              >
+                {currentTrack?.title || 'No track selected'}
+              </span>
+            </div>
+
+            <div className="text-xs text-zinc-400 truncate mt-0.5">
+              {currentTrack?.artist ? (
+                <Link
+                  href={`/artist/${encodeURIComponent(
+                    (currentTrack as any).artistId || currentTrack.artist
+                  )}`}
+                  className="hover:text-white hover:underline transition-colors"
+                >
+                  {currentTrack.artist}
+                </Link>
+              ) : (
+                'Choose a song to start listening'
+              )}
+            </div>
+          </div>
+
+          {/* Quick Actions (Favorite & 3-Dots Menu) beside track info */}
+          {currentTrack && (
+            <div className="flex items-center gap-1 shrink-0 ml-1">
+              {/* Favorite Heart Button */}
+              <button
+                onClick={handleFavoriteToggle}
+                className="p-1.5 text-zinc-400 hover:text-white hover:scale-110 active:scale-95 transition-all"
+                title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+              >
+                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
+              </button>
+
+              {/* 3-Dots Options Menu Button */}
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
+                    isMenuOpen ? 'text-primary bg-white/10' : 'text-zinc-400 hover:text-white'
+                  }`}
+                  title="More Options"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+
+                {/* Glassmorphic Dropdown Popup Menu */}
+                {isMenuOpen && (
+                  <div className="absolute bottom-10 left-0 w-52 bg-zinc-950/95 border border-white/10 rounded-2xl p-1.5 shadow-[0_10px_35px_rgba(0,0,0,0.8)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <button
+                      onClick={() => {
+                        openPlaylistModal(currentTrack);
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                    >
+                      <Plus className="w-4 h-4 text-purple-300" />
+                      <span>Add to Playlist</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        handleFavoriteToggle();
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                    >
+                      <Heart className={`w-4 h-4 ${isFavorite ? 'fill-primary text-primary' : 'text-zinc-400'}`} />
+                      <span>{isFavorite ? 'Remove Favorite' : 'Add to Favorites'}</span>
+                    </button>
+
+                    {(currentTrack as any).artistId || currentTrack.artist ? (
+                      <Link
+                        href={`/artist/${encodeURIComponent(
+                          (currentTrack as any).artistId || currentTrack.artist
+                        )}`}
+                        onClick={() => setIsMenuOpen(false)}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                      >
+                        <User className="w-4 h-4 text-zinc-400" />
+                        <span>Go to Artist</span>
+                      </Link>
+                    ) : null}
+
+                    {currentTrack.albumId ? (
+                      <Link
+                        href={`/album/${encodeURIComponent(currentTrack.albumId)}`}
+                        onClick={() => setIsMenuOpen(false)}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                      >
+                        <Disc className="w-4 h-4 text-zinc-400" />
+                        <span>Go to Album</span>
+                      </Link>
+                    ) : null}
+
+                    <button
+                      onClick={() => {
+                        toggleNowPlaying();
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4 text-zinc-400" />
+                      <span>{isNowPlaying ? 'Minimize Now Playing' : 'Open Now Playing'}</span>
+                    </button>
+
+                    <div className="w-full h-px bg-white/10 my-1" />
+
+                    <button
+                      onClick={handleCopyLink}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                    >
+                      <Share2 className="w-4 h-4 text-zinc-400" />
+                      <span>Copy Share Link</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
-        <div className="flex flex-col min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-white line-clamp-1">{currentTrack?.title || 'No track selected'}</span>
-            {isInstantLaunch && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full animate-in fade-in zoom-in duration-200 shrink-0">
-                <Zap className="w-2.5 h-2.5 fill-current" />
-                0ms Instant
-              </span>
-            )}
-          </div>
-          <span className="text-xs text-muted-foreground line-clamp-1">{currentTrack?.artist || 'Unknown Artist'}</span>
-        </div>
-      </div>
 
-      {/* Controls */}
-      <div className="flex flex-col items-center justify-center flex-1 max-w-md gap-2">
-        <div className="flex items-center gap-5">
-          <button
-            onClick={toggleShuffle}
-            className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
-              isShuffle
-                ? 'text-primary drop-shadow-[0_0_10px_rgba(168,85,247,0.8)]'
-                : 'text-muted-foreground hover:text-white'
-            }`}
-            title={isShuffle ? 'Shuffle is ON (Click to turn OFF)' : 'Shuffle is OFF (Click to turn ON)'}
-          >
-            <Shuffle className="w-4 h-4" />
-          </button>
-          <button onClick={playPrevious} className="text-muted-foreground hover:text-white transition-colors">
-            <SkipBack className="w-5 h-5 fill-current" />
-          </button>
-          <button 
-            onClick={togglePlay}
-            disabled={!currentTrack || isLoading}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-black hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
-          >
-            {isLoading ? (
-               <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-            ) : isPlaying ? (
-              <Pause className="w-5 h-5 fill-current" />
-            ) : (
-              <Play className="w-5 h-5 fill-current translate-x-0.5" />
-            )}
-          </button>
-          <button onClick={() => nextTrack()} className="text-muted-foreground hover:text-white transition-colors">
-            <SkipForward className="w-5 h-5 fill-current" />
-          </button>
-        </div>
-        <div className="w-full flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground w-8 text-right">{formatTime(currentTime)}</span>
-          <div 
-            className="h-1.5 flex-1 bg-white/10 rounded-full overflow-hidden cursor-pointer group relative"
-            onClick={handleSeek}
-          >
-            <div 
-              className="absolute top-0 left-0 h-full bg-primary group-hover:bg-accent transition-colors"
-              style={{ width: `${progressPercent}%` }} 
-            />
-          </div>
-          <span className="text-[10px] text-muted-foreground w-8">{formatTime(duration)}</span>
-        </div>
-      </div>
-
-      {/* Actions & Volume */}
-      <div className="w-1/3 flex items-center justify-end gap-3">
-        {currentTrack ? (
-          isLyricsPage ? (
+        {/* ── Center Section: Controls & Aesthetic Zigzag Progress Bar ── */}
+        <div className="flex flex-col items-center justify-center flex-1 max-w-xl px-4 gap-1.5">
+          {/* Playback Button Row */}
+          <div className="flex items-center gap-5">
+            {/* Shuffle */}
             <button
-              onClick={() => {
-                if (typeof window !== 'undefined' && window.history.length > 1) {
-                  router.back();
-                } else {
-                  router.push('/');
-                }
-              }}
-              className="transition-all duration-300 p-1.5 rounded-lg flex items-center justify-center hover:scale-110 active:scale-95 text-primary bg-primary/20 shadow-[0_0_15px_rgba(168,85,247,0.4)] ring-1 ring-primary/40 cursor-pointer"
-              title="Minimize Lyrics (Return to previous page)"
-            >
-              <Mic2 className="w-5 h-5 text-primary drop-shadow-[0_0_8px_rgba(168,85,247,0.9)]" />
-            </button>
-          ) : (
-            <Link
-              href="/lyrics"
-              className={`transition-all duration-300 p-1.5 rounded-lg flex items-center justify-center hover:scale-110 active:scale-95 ${
-                hasLyrics
-                  ? 'text-primary drop-shadow-[0_0_10px_rgba(168,85,247,0.85)] hover:text-white'
-                  : isLyricsLoading
-                  ? 'text-muted-foreground animate-pulse'
-                  : 'text-muted-foreground hover:text-white'
+              onClick={toggleShuffle}
+              className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
+                isShuffle
+                  ? 'text-primary'
+                  : 'text-zinc-400 hover:text-white'
               }`}
-              title={
-                hasLyrics
-                  ? 'Lyrics (Available)'
-                  : isLyricsLoading
-                  ? 'Searching lyrics...'
-                  : 'Lyrics'
-              }
+              title={isShuffle ? 'Shuffle is ON (Click to turn OFF)' : 'Shuffle is OFF (Click to turn ON)'}
             >
-              <Mic2 className={`w-5 h-5 ${hasLyrics ? 'text-primary drop-shadow-[0_0_8px_rgba(168,85,247,0.9)]' : ''}`} />
-            </Link>
-          )
-        ) : (
-          <div className="text-muted-foreground/30 cursor-not-allowed p-1.5" title="No track playing">
-            <Mic2 className="w-5 h-5" />
+              <Shuffle className="w-4 h-4" />
+            </button>
+
+            {/* Previous Track */}
+            <button
+              onClick={playPrevious}
+              className="text-zinc-300 hover:text-white hover:scale-110 active:scale-95 transition-all p-1"
+              title="Previous Track"
+            >
+              <SkipBack className="w-5 h-5 fill-current" />
+            </button>
+
+            {/* Minimalist White Play/Pause Button */}
+            <button
+              onClick={togglePlay}
+              disabled={!currentTrack || isLoading}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-black hover:scale-105 active:scale-95 shadow-md hover:bg-zinc-100 transition-all disabled:opacity-50 disabled:hover:scale-100"
+              title={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+              ) : isPlaying ? (
+                <Pause className="w-4.5 h-4.5 fill-current" />
+              ) : (
+                <Play className="w-4.5 h-4.5 fill-current translate-x-0.5" />
+              )}
+            </button>
+
+            {/* Next Track */}
+            <button
+              onClick={() => nextTrack()}
+              className="text-zinc-300 hover:text-white hover:scale-110 active:scale-95 transition-all p-1"
+              title="Next Track"
+            >
+              <SkipForward className="w-5 h-5 fill-current" />
+            </button>
           </div>
-        )}
-        <button 
-          onClick={handleFavoriteToggle}
-          className="text-muted-foreground hover:text-white transition-colors hover:scale-110 active:scale-95" 
-          title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-        >
-          <Heart className={`w-5 h-5 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
-        </button>
-        <button 
-          onClick={() => openPlaylistModal(currentTrack)}
-          className="text-muted-foreground hover:text-white transition-colors hover:scale-110 active:scale-95" 
-          title="Add to Playlist"
-        >
-          <Plus className="w-5 h-5" />
-        </button>
-        <button
-          onClick={toggleQueue}
-          className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
-            isQueueOpen
-              ? 'text-primary bg-primary/20 shadow-[0_0_12px_rgba(168,85,247,0.4)] ring-1 ring-primary/40'
-              : 'text-muted-foreground hover:text-white'
-          }`}
-          title="Playback Queue"
-        >
-          <ListMusic className="w-5 h-5" />
-        </button>
 
-        <div className="w-px h-4 bg-white/10 mx-2" />
-
-        <button onClick={toggleMute} className="text-muted-foreground hover:text-white transition-colors">
-          {volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-        </button>
-        <div 
-          className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer group relative"
-          onClick={handleVolumeClick}
-        >
-          <div 
-            className="absolute top-0 left-0 h-full bg-white group-hover:bg-primary transition-colors" 
-            style={{ width: `${volume * 100}%` }}
+          {/* Aesthetic Zigzag Waveform Progress Bar */}
+          <ZigzagProgressBar
+            currentTime={currentTime}
+            duration={duration}
+            onSeek={seek}
+            isPlaying={isPlaying}
           />
+        </div>
+
+        {/* ── Right Section: Crossfade Toggle & Utilities ────────────── */}
+        <div className="w-[30%] flex items-center justify-end gap-2.5">
+          {/* Apple Music Seamless Crossfade Toggle Pill */}
+          <button
+            onClick={cycleCrossfade}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all duration-200 hover:scale-105 active:scale-95 ${
+              crossfadeDuration > 0
+                ? 'bg-purple-500/15 text-purple-200 border-purple-500/30'
+                : 'bg-white/5 text-zinc-400 border-white/10 hover:text-white'
+            }`}
+            title={`Apple Music Crossfade: ${
+              crossfadeDuration === 0 ? 'Off (Click to cycle)' : `${crossfadeDuration}s overlap (Click to change)`
+            }`}
+          >
+            <Sparkles className="w-3 h-3 text-purple-300" />
+            <span className="font-semibold">{crossfadeDuration === 0 ? 'Fade Off' : `Fade ${crossfadeDuration}s`}</span>
+          </button>
+
+          {/* Lyrics Button */}
+          {currentTrack ? (
+            isLyricsPage ? (
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push('/');
+                  }
+                }}
+                className="p-1.5 rounded-lg flex items-center justify-center hover:scale-110 active:scale-95 text-primary bg-primary/20 transition-all"
+                title="Minimize Lyrics"
+              >
+                <Mic2 className="w-4.5 h-4.5 text-primary" />
+              </button>
+            ) : (
+              <Link
+                href="/lyrics"
+                className={`p-1.5 rounded-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all ${
+                  hasLyrics
+                    ? 'text-primary hover:text-white'
+                    : isLyricsLoading
+                    ? 'text-zinc-500 animate-pulse'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+                title={
+                  hasLyrics
+                    ? 'Lyrics (Synchronized Available)'
+                    : isLyricsLoading
+                    ? 'Searching lyrics...'
+                    : 'Lyrics'
+                }
+              >
+                <Mic2 className="w-4.5 h-4.5" />
+              </Link>
+            )
+          ) : (
+            <div className="text-zinc-600 cursor-not-allowed p-1.5" title="No track playing">
+              <Mic2 className="w-4.5 h-4.5" />
+            </div>
+          )}
+
+          {/* Playback Queue Drawer */}
+          <button
+            onClick={toggleQueue}
+            className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
+              isQueueOpen
+                ? 'text-primary bg-primary/20'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+            title="Playback Queue"
+          >
+            <ListMusic className="w-4.5 h-4.5" />
+          </button>
+
+          {/* Subtle Vertical Divider */}
+          <div className="w-px h-4 bg-white/10 mx-0.5" />
+
+          {/* Volume Control */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleMute}
+              className="text-zinc-400 hover:text-white transition-colors"
+              title={volume === 0 ? 'Unmute' : 'Mute'}
+            >
+              {volume === 0 ? <VolumeX className="w-4.5 h-4.5" /> : <Volume2 className="w-4.5 h-4.5" />}
+            </button>
+            <div
+              className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer group relative shadow-inner"
+              onClick={handleVolumeClick}
+              title={`Volume: ${Math.round(volume * 100)}%`}
+            >
+              <div
+                className="absolute top-0 left-0 h-full bg-zinc-200 group-hover:bg-primary rounded-full transition-colors"
+                style={{ width: `${volume * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Subtle Vertical Divider */}
+          <div className="w-px h-4 bg-white/10 mx-0.5" />
+
+          {/* ── Bidirectional Now Playing Arrow Button ─────────────── */}
+          <button
+            onClick={toggleNowPlaying}
+            disabled={!currentTrack}
+            className={`p-1.5 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 border ${
+              isNowPlaying
+                ? 'bg-purple-500/20 text-purple-200 border-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
+                : 'bg-white/5 text-zinc-300 hover:text-white border-white/10 hover:bg-white/10'
+            } disabled:opacity-40 disabled:cursor-not-allowed`}
+            title={
+              isNowPlaying
+                ? 'Minimize - Return to previous page'
+                : 'Open Now Playing screen'
+            }
+          >
+            {isNowPlaying ? (
+              <ChevronDown className="w-4.5 h-4.5 text-purple-300" />
+            ) : (
+              <ChevronUp className="w-4.5 h-4.5 text-zinc-300 group-hover:text-white transition-colors" />
+            )}
+          </button>
         </div>
       </div>
     </div>

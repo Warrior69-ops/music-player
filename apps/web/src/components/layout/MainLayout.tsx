@@ -32,6 +32,34 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Global Spacebar Play/Pause shortcut handler
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        const activeEl = document.activeElement;
+        const tagName = activeEl?.tagName.toLowerCase();
+        const isEditable =
+          tagName === 'input' ||
+          tagName === 'textarea' ||
+          (activeEl as HTMLElement)?.isContentEditable;
+
+        // Do not intercept if user is typing into an input field or textarea
+        if (isEditable) return;
+
+        // Prevent browser page scroll
+        e.preventDefault();
+
+        const { currentTrack, isPlaying, setIsPlaying } = usePlayerStore.getState();
+        if (currentTrack) {
+          setIsPlaying(!isPlaying);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   return (
     <div className="h-screen w-full flex flex-col bg-background text-foreground overflow-hidden">
       <div className="flex-1 flex overflow-hidden">

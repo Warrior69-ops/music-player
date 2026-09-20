@@ -34,9 +34,9 @@ export default function HomePage() {
     }
   }, [shelves, history]);
 
-  const handlePlayAll = (tracks: Track[]) => {
+  const handlePlayAll = (tracks: Track[], shelfTitle?: string) => {
     if (!tracks || tracks.length === 0) return;
-    setQueue(tracks, 0);
+    setQueue(tracks, 0, shelfTitle ? { type: 'custom', name: shelfTitle } : undefined);
   };
 
   const getShelfIcon = (shelf: RecommendationShelf, index: number) => {
@@ -121,7 +121,7 @@ export default function HomePage() {
 
                 <button
                   type="button"
-                  onClick={() => handlePlayAll(shelf.items)}
+                  onClick={() => handlePlayAll(shelf.items, shelf.title)}
                   className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95"
                   title="Play all tracks from this shelf"
                 >
@@ -137,7 +137,12 @@ export default function HomePage() {
                     key={`${track.providerTrackId}-${trackIdx}`}
                     className="w-[180px] sm:w-[210px] flex-shrink-0 snap-start"
                   >
-                    <TrackCard track={track} contextQueue={shelf.items} trackIndex={trackIdx} />
+                    <TrackCard
+                      track={track}
+                      contextQueue={shelf.items}
+                      trackIndex={trackIdx}
+                      queueSource={{ type: 'custom', name: shelf.title }}
+                    />
                   </div>
                 ))}
               </div>

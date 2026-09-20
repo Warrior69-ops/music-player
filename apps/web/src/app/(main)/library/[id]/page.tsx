@@ -51,16 +51,17 @@ export default function PlaylistPage() {
   }
 
   const tracks = playlist.tracks || [];
+  const playlistSource = { type: 'playlist' as const, name: playlist.name, id: playlist._id || playlist.id };
 
   const handlePlayAll = () => {
     if (tracks.length === 0) return;
-    setQueue(tracks, 0);
+    setQueue(tracks, 0, playlistSource);
   };
 
   const handleSmartShuffle = () => {
     if (tracks.length === 0) return;
     const shuffled = smartShuffleTracks(tracks);
-    setQueue(shuffled, 0);
+    setQueue(shuffled, 0, playlistSource);
     toast.success('Smart Shuffle enabled');
   };
 
@@ -142,6 +143,7 @@ export default function PlaylistPage() {
                 track={track}
                 contextQueue={tracks}
                 trackIndex={idx}
+                queueSource={playlistSource}
                 onRemoveFromPlaylist={() => handleRemoveTrack(track.providerTrackId)}
               />
             </div>

@@ -7,6 +7,8 @@ export interface Track {
   title: string;
   artist: string;
   albumArt?: string;
+  album?: string;
+  albumId?: string;
   duration?: number;
   releaseDate?: Date;
   genre?: string;
@@ -23,6 +25,12 @@ export const getTrackId = (track?: Track | null): string => {
   return track.providerTrackId || track.id || '';
 };
 
+export interface QueueSource {
+  type: 'album' | 'artist' | 'playlist' | 'favorites' | 'search' | 'radio' | 'custom';
+  name: string;
+  id?: string;
+}
+
 export interface PlayerState {
   currentTrack: Track | null;
   queue: Track[];
@@ -35,10 +43,13 @@ export interface PlayerState {
   isQueueOpen: boolean;
   isInstantLaunch: boolean;
   warmedTrackIds: string[];
+  crossfadeDuration: number; // in seconds: 0 (off), 3, 5 (default), 7, 10
+  queueSource: QueueSource | null;
 
   // Core Actions
-  setCurrentTrack: (track: Track) => void;
-  setQueue: (tracks: Track[], startIndex?: number) => void;
+  setCurrentTrack: (track: Track, source?: QueueSource | null) => void;
+  setQueue: (tracks: Track[], startIndex?: number, source?: QueueSource | null) => void;
+  setQueueSource: (source: QueueSource | null) => void;
   playNext: (track?: Track) => void; // Advances queue if no arg, inserts next if track passed
   addToQueue: (track: Track) => void;
   nextTrack: () => void;
@@ -52,6 +63,7 @@ export interface PlayerState {
   reorderQueue: (startIndex: number, endIndex: number) => void;
   setIsPlaying: (playing: boolean) => void;
   setVolume: (volume: number) => void;
+  setCrossfadeDuration: (seconds: number) => void;
   toggleAutoplay: () => void;
   setIsQueueOpen: (open: boolean) => void;
   toggleQueue: () => void;
@@ -71,19 +83,33 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isQueueOpen: false,
   isInstantLaunch: false,
   warmedTrackIds: [],
+  crossfadeDuration: 5, // 5s Apple Music sweet spot default
+  queueSource: null,
 
-  setCurrentTrack: (track: Track) => {
+  setQueueSource: (source: QueueSource | null) => set({ queueSource: source }),
+
+  setCurrentTrack: (track: Track, source?: QueueSource | null) => {
     const { queue, originalQueue } = get();
     const trackId = getTrackId(track);
     const existingIndex = queue.findIndex((t) => getTrackId(t) === trackId);
 
     const cleanTrack = { ...track, isAutoplay: false };
 
+    const resolvedSource =
+      source !== undefined
+        ? source
+        : track.album
+        ? { type: 'album' as const, name: track.album, id: track.albumId }
+        : track.artist
+        ? { type: 'artist' as const, name: `${track.artist} Radio` }
+        : { type: 'custom' as const, name: track.title };
+
     if (existingIndex !== -1) {
       set({
         currentTrack: cleanTrack,
         currentIndex: existingIndex,
         isPlaying: true,
+        queueSource: resolvedSource,
       });
     } else {
       // If queue is empty or song is not in queue, set it as current track at index 0
@@ -93,14 +119,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         originalQueue: [cleanTrack, ...originalQueue],
         currentIndex: 0,
         isPlaying: true,
+        queueSource: resolvedSource,
       });
     }
   },
 
-  setQueue: (tracks: Track[], startIndex = 0) => {
+  setQueue: (tracks: Track[], startIndex = 0, source?: QueueSource | null) => {
     const validIndex = Math.max(0, Math.min(startIndex, tracks.length - 1));
     const cleanTracks = tracks.map((t) => ({ ...t, isAutoplay: false }));
     const targetTrack = cleanTracks[validIndex] || null;
+
+    const resolvedSource =
+      source !== undefined
+        ? source
+        : targetTrack?.album
+        ? { type: 'album' as const, name: targetTrack.album, id: targetTrack.albumId }
+        : targetTrack?.artist
+        ? { type: 'artist' as const, name: targetTrack.artist }
+        : null;
 
     set({
       queue: cleanTracks,
@@ -109,6 +145,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       currentTrack: targetTrack,
       isPlaying: true,
       isShuffle: false,
+      queueSource: resolvedSource,
     });
   },
 
@@ -336,6 +373,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   setIsPlaying: (playing: boolean) => set({ isPlaying: playing }),
   setVolume: (volume: number) => set({ volume }),
+  setCrossfadeDuration: (seconds: number) => set({ crossfadeDuration: Math.max(0, seconds) }),
   toggleAutoplay: () =>
     set((state) => ({ isAutoplayEnabled: !state.isAutoplayEnabled })),
   setIsQueueOpen: (open: boolean) => set({ isQueueOpen: open }),

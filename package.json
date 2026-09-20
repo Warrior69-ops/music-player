@@ -4,5 +4,15 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"API,WEB\" -c \"magenta,cyan\" \"npm --workspace=apps/api run start:dev\" \"npm --workspace=apps/web run dev\"",
+    "start": "npm run dev",
+    "dev:api": "npm --workspace=apps/api run start:dev",
+    "dev:web": "npm --workspace=apps/web run dev",
+    "build": "npm --workspace=apps/api run build && npm --workspace=apps/web run build"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
 }

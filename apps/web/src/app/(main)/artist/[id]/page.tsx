@@ -22,6 +22,7 @@ import { TrackMenu } from '@/components/ui/TrackMenu';
 import { AlbumCard } from '@/components/ui/AlbumCard';
 import { smartShuffleTracks } from '@/lib/smartShuffle';
 import { warmupStandbyTrack } from '@/hooks/useAudioPlayer';
+import { EqualizerBars } from '@/components/ui/EqualizerBars';
 import api from '@/lib/api';
 
 function formatDuration(sec?: number) {
@@ -86,19 +87,21 @@ export default function ArtistPage() {
     );
   }
 
+  const artistSource = { type: 'artist' as const, name: `${artist.name} (Top Tracks)`, id: artist.id };
+
   const handlePlayAll = () => {
     if (topSongs.length === 0) return;
-    setQueue(topSongs, 0);
+    setQueue(topSongs, 0, artistSource);
   };
 
   const handleSmartShuffle = () => {
     if (topSongs.length === 0) return;
     const shuffled = smartShuffleTracks(topSongs);
-    setQueue(shuffled, 0);
+    setQueue(shuffled, 0, artistSource);
   };
 
   const handlePlayTrack = (trackIndex: number) => {
-    setQueue(topSongs, trackIndex);
+    setQueue(topSongs, trackIndex, artistSource);
   };
 
   const handlePrefetch = (trackId: string) => {
@@ -128,7 +131,7 @@ export default function ArtistPage() {
         <div className="absolute inset-0 flex items-end p-6 md:p-10 max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center md:items-end gap-6 w-full">
             {/* Circular Artist Avatar with Ambient Glow */}
-            <div className="relative w-36 h-36 md:w-44 md:h-44 rounded-full overflow-hidden border-4 border-white/10 shadow-[0_0_50px_rgba(236,72,153,0.3)] shrink-0 bg-black/60">
+            <div className="relative w-36 h-36 md:w-44 md:h-44 rounded-full overflow-hidden border-4 border-purple-500/30 shadow-[0_0_50px_rgba(139,92,246,0.35)] shrink-0 bg-black/60">
               {artist.thumbnail ? (
                 <Image
                   src={artist.thumbnail}
@@ -140,16 +143,16 @@ export default function ArtistPage() {
                   sizes="(max-width: 768px) 144px, 176px"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-primary/20">
-                  <UserCheck className="w-16 h-16 text-primary" />
+                <div className="w-full h-full flex items-center justify-center bg-purple-500/20">
+                  <UserCheck className="w-16 h-16 text-purple-300" />
                 </div>
               )}
             </div>
 
             {/* Details & Actions */}
             <div className="flex flex-col items-center md:items-start text-center md:text-left flex-1 min-w-0">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold text-primary mb-2">
-                <Sparkles className="w-3.5 h-3.5 fill-primary" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full glass-pill text-xs font-semibold text-purple-300 border border-purple-500/30 mb-2 shadow-sm">
+                <Sparkles className="w-3.5 h-3.5 fill-purple-400 text-purple-400" />
                 <span>Verified Artist</span>
               </div>
 
@@ -158,7 +161,7 @@ export default function ArtistPage() {
               </h1>
 
               {artist.subscribers && (
-                <p className="text-sm font-medium text-white/70 mb-5">
+                <p className="text-sm font-medium text-purple-200/70 mb-5">
                   {artist.subscribers}
                 </p>
               )}
@@ -169,7 +172,7 @@ export default function ArtistPage() {
                   onClick={handlePlayAll}
                   onMouseEnter={() => topSongs[0] && warmupStandbyTrack(topSongs[0])}
                   onPointerDown={() => topSongs[0] && warmupStandbyTrack(topSongs[0])}
-                  className="flex items-center gap-2 px-7 py-3 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-[0_4px_20px_rgba(236,72,153,0.4)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-7 py-3 rounded-full bg-gradient-to-tr from-purple-400 via-primary to-purple-200 text-black font-bold text-sm shadow-[0_4px_20px_rgba(168,85,247,0.5)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
                 >
                   <Play className="w-4 h-4 fill-current ml-0.5" />
                   <span>Play All</span>
@@ -179,9 +182,9 @@ export default function ArtistPage() {
                   onClick={handleSmartShuffle}
                   onMouseEnter={() => topSongs[0] && warmupStandbyTrack(topSongs[0])}
                   onPointerDown={() => topSongs[0] && warmupStandbyTrack(topSongs[0])}
-                  className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/10 hover:bg-white/15 text-white font-semibold text-sm backdrop-blur-md border border-white/10 hover:border-white/20 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-6 py-3 rounded-full glass-pill hover:bg-white/15 text-white font-semibold text-sm border border-purple-500/30 hover:border-purple-400/50 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                 >
-                  <Shuffle className="w-4 h-4" />
+                  <Shuffle className="w-4 h-4 text-purple-300" />
                   <span>Smart Shuffle</span>
                 </button>
               </div>
@@ -194,14 +197,14 @@ export default function ArtistPage() {
       <div className="max-w-7xl mx-auto px-6 md:px-10 mt-8 space-y-12">
         {/* Bio / Description (if available) */}
         {artist.description && (
-          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
-            <p className={`text-sm text-white/70 leading-relaxed ${!showFullBio ? 'line-clamp-2' : ''}`}>
+          <div className="p-5 rounded-2xl glass-panel border border-purple-500/15">
+            <p className={`text-sm text-purple-200/80 leading-relaxed ${!showFullBio ? 'line-clamp-2' : ''}`}>
               {artist.description}
             </p>
             {artist.description.length > 180 && (
               <button
                 onClick={() => setShowFullBio(!showFullBio)}
-                className="mt-2 text-xs font-semibold text-primary hover:underline"
+                className="mt-2 text-xs font-semibold text-purple-400 hover:text-purple-300 hover:underline"
               >
                 {showFullBio ? 'Show less' : 'Read more'}
               </button>
@@ -215,14 +218,14 @@ export default function ArtistPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-2xl font-bold text-white">Top Songs</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Most played releases</p>
+                <p className="text-xs text-purple-300/60 mt-0.5">Most played releases</p>
               </div>
             </div>
 
             {/* 3-Row Horizontal Flow Grid (Columns of 3 like YouTube Music) */}
             <div className="relative">
               <div
-                className="grid grid-rows-3 grid-flow-col auto-cols-[320px] md:auto-cols-[380px] gap-x-6 gap-y-2.5 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20"
+                className="grid grid-rows-3 grid-flow-col auto-cols-[320px] md:auto-cols-[380px] gap-x-6 gap-y-2.5 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-purple-500/20 hover:scrollbar-thumb-purple-500/40"
                 style={{ scrollSnapType: 'x mandatory' }}
               >
                 {topSongs.map((track, idx) => {
@@ -236,20 +239,20 @@ export default function ArtistPage() {
                       onPointerDown={() => warmupStandbyTrack(track)}
                       onClick={() => handlePlayTrack(idx)}
                       style={{ scrollSnapAlign: 'start' }}
-                      className={`group relative flex items-center justify-between p-2 rounded-xl transition-all duration-200 cursor-pointer border ${
+                      className={`group relative flex items-center justify-between p-2.5 rounded-2xl transition-all duration-300 cursor-pointer border ${
                         isCurrent
-                          ? 'bg-white/10 border-primary/40 shadow-[0_4px_20px_rgba(236,72,153,0.15)]'
-                          : 'bg-white/[0.02] hover:bg-white/[0.07] border-white/5'
+                          ? 'glass-card border-purple-500/60 ring-1 ring-purple-500/40 shadow-[0_4px_24px_rgba(139,92,246,0.25)] bg-purple-950/30'
+                          : 'bg-white/[0.02] hover:bg-purple-950/20 border-white/5 hover:border-purple-500/30'
                       }`}
                     >
                       {/* Left: Rank, Artwork & Title */}
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        {/* Rank Number or Equalizer */}
-                        <div className="w-5 text-center shrink-0">
+                        {/* Rank Number or Animated Equalizer Bars */}
+                        <div className="w-5 text-center shrink-0 flex items-center justify-center">
                           {isTrackPlaying ? (
-                            <Volume2 className="w-4 h-4 text-primary animate-pulse mx-auto" />
+                            <EqualizerBars isPlaying={isTrackPlaying} size="xs" />
                           ) : (
-                            <span className={`text-xs font-bold ${isCurrent ? 'text-primary' : 'text-muted-foreground group-hover:text-white'}`}>
+                            <span className={`text-xs font-bold ${isCurrent ? 'text-purple-400' : 'text-purple-300/60 group-hover:text-white'}`}>
                               {idx + 1}
                             </span>
                           )}

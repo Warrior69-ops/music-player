@@ -13,6 +13,7 @@ import {
   Radio,
 } from 'lucide-react';
 import { usePlayerStore, getTrackId, Track } from '@/store/usePlayerStore';
+import { EqualizerBars } from './EqualizerBars';
 
 function formatDuration(seconds?: number): string {
   if (!seconds || isNaN(seconds)) return '0:00';
@@ -245,17 +246,7 @@ export const QueueDrawer: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2 pr-1">
-                  {isPlaying ? (
-                    <div className="flex items-end gap-0.5 h-4 w-4">
-                      <span className="w-1 bg-primary rounded-full animate-bounce h-full" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1 bg-primary rounded-full animate-bounce h-2/3" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1 bg-primary rounded-full animate-bounce h-full" style={{ animationDelay: '300ms' }} />
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      {formatDuration(currentTrack.duration)}
-                    </span>
-                  )}
+                  <EqualizerBars isPlaying={isPlaying} size="sm" />
                 </div>
               </div>
             ) : (

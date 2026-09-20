@@ -16,15 +16,17 @@ export default function FavoritesPage() {
 
   const tracks = favorites || [];
 
+  const favoritesSource = { type: 'favorites' as const, name: 'Liked Music' };
+
   const handlePlayAll = () => {
     if (tracks.length === 0) return;
-    setQueue(tracks, 0);
+    setQueue(tracks, 0, favoritesSource);
   };
 
   const handleSmartShuffle = () => {
     if (tracks.length === 0) return;
     const shuffled = smartShuffleTracks(tracks);
-    setQueue(shuffled, 0);
+    setQueue(shuffled, 0, favoritesSource);
     toast.success('Smart Shuffle enabled for Favorites');
   };
 
@@ -70,6 +72,7 @@ export default function FavoritesPage() {
               track={track}
               contextQueue={tracks}
               trackIndex={idx}
+              queueSource={favoritesSource}
             />
           ))}
         </div>
