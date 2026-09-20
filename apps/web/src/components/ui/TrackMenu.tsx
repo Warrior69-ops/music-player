@@ -155,14 +155,14 @@ export const TrackMenu: React.FC<TrackMenuProps> = ({
           e.stopPropagation();
           setIsOpen((prev) => !prev);
         }}
-        className={`p-1.5 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white/80 hover:text-white transition-all duration-200 border border-white/10 shadow-lg active:scale-95 ${triggerClassName}`}
+        className={`p-1.5 rounded-full liquid-glass-pill text-white/80 hover:text-white transition-all duration-200 active:scale-95 ${triggerClassName}`}
         title="More options"
         aria-label="More options"
       >
         <MoreVertical className="w-4 h-4" />
       </button>
 
-      {/* Floating Glassmorphic Dropdown Menu in Portal (Always above cards) */}
+      {/* Floating Liquid Glass Dropdown Menu in Portal (Always above cards) */}
       {isOpen &&
         coords &&
         typeof document !== 'undefined' &&
@@ -173,10 +173,23 @@ export const TrackMenu: React.FC<TrackMenuProps> = ({
               position: 'fixed',
               top: `${coords.top}px`,
               left: `${coords.left}px`,
+              WebkitBackdropFilter: 'blur(32px) saturate(160%)',
+              backdropFilter: 'blur(32px) saturate(160%)',
             }}
             onClick={(e) => e.stopPropagation()}
-            className="w-48 rounded-xl bg-zinc-900/95 backdrop-blur-2xl border border-white/15 shadow-[0_12px_45px_rgba(0,0,0,0.85)] py-1.5 z-[9999] animate-in fade-in zoom-in-95 duration-150 select-none"
+            className="w-52 rounded-2xl liquid-glass-dropdown py-1.5 z-[9999] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-white/20 animate-in fade-in zoom-in-95 duration-150 select-none transform-gpu will-change-transform"
           >
+            {/* Apple iOS Deep Blurred Album Art inside Dropdown */}
+            {track?.albumArt && (
+              <div className="absolute -inset-10 overflow-hidden pointer-events-none -z-10">
+                <div
+                  className="absolute -inset-10 bg-cover bg-center filter blur-[35px] opacity-75 scale-130 transition-all duration-500"
+                  style={{ backgroundImage: `url(${track.albumArt})` }}
+                />
+                <div className="absolute inset-0 bg-black/45" />
+              </div>
+            )}
+
             {/* Play Next */}
             <button
               onClick={handlePlayNext}

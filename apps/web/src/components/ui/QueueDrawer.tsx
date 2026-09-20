@@ -153,7 +153,11 @@ export const QueueDrawer: React.FC = () => {
       <aside
         ref={drawerRef}
         aria-label="Playback Queue"
-        className="fixed inset-y-0 right-0 z-50 w-full sm:w-[440px] bg-zinc-950/90 backdrop-blur-2xl border-l border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col animate-in slide-in-from-right duration-300 select-none"
+        className="fixed inset-y-0 right-0 z-50 w-full sm:w-[440px] liquid-glass-panel border-l border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col animate-in slide-in-from-right duration-300 select-none transform-gpu will-change-transform"
+        style={{
+          WebkitBackdropFilter: 'blur(28px) saturate(135%)',
+          backdropFilter: 'blur(28px) saturate(135%)',
+        }}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-white/10">

@@ -54,8 +54,20 @@ export function PlaylistModal({ isOpen, onClose, track }: PlaylistModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 transition-all"
+      style={{
+        WebkitBackdropFilter: 'blur(28px) saturate(135%)',
+        backdropFilter: 'blur(28px) saturate(135%)',
+      }}
+    >
+      <div
+        className="w-full max-w-md liquid-glass-card rounded-3xl border border-white/12 shadow-[0_20px_50px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col max-h-[80vh] transform-gpu will-change-transform animate-in fade-in zoom-in-95 duration-200"
+        style={{
+          WebkitBackdropFilter: 'blur(28px) saturate(135%)',
+          backdropFilter: 'blur(28px) saturate(135%)',
+        }}
+      >
         
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <h2 className="text-xl font-semibold text-white">Add to Playlist</h2>

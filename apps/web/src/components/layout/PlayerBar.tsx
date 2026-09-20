@@ -150,8 +150,31 @@ export function PlayerBar() {
 
   return (
     <div className="relative px-3 pb-2.5 pt-0 z-50 select-none">
-      {/* Refined Dock Matching Dark Background Shade */}
-      <div className="h-24 glass-dock rounded-2xl flex items-center justify-between px-6 transition-all duration-300">
+      {/* ── Apple iOS Liquid Glass Ambient Backdrop (Directly behind the Music Bar) ── */}
+      {currentTrack?.albumArt ? (
+        <div className="absolute inset-x-3 bottom-2.5 top-0 rounded-2xl overflow-hidden pointer-events-none z-0">
+          <div
+            className="absolute -inset-10 bg-cover bg-center filter blur-[20px] opacity-90 scale-110 transition-all duration-700 transform-gpu will-change-transform"
+            style={{ backgroundImage: `url(${currentTrack.albumArt})` }}
+          />
+          {/* Subtle translucent scrim to maintain contrast while showing album art blurly */}
+          <div className="absolute inset-0 bg-black/20" />
+        </div>
+      ) : (
+        <div className="absolute inset-x-3 bottom-2.5 top-0 rounded-2xl overflow-hidden pointer-events-none z-0">
+          <div className="absolute -inset-10 bg-gradient-to-r from-purple-900/30 via-violet-800/20 to-purple-900/30 blur-[24px]" />
+          <div className="absolute inset-0 bg-[#07040d]/40" />
+        </div>
+      )}
+
+      {/* Refined Dock with Liquid Glass Optics */}
+      <div
+        className="relative z-10 h-24 liquid-glass-dock rounded-2xl flex items-center justify-between px-6 transition-all duration-300 transform-gpu will-change-transform"
+        style={{
+          WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+          backdropFilter: 'blur(20px) saturate(140%)',
+        }}
+      >
         {/* ── Left Section: Track Info, Favorite & 3-Dots Menu ──────────── */}
         <div className="w-[30%] flex items-center gap-3 min-w-0">
           {/* Clickable Album Thumbnail (Opens Now Playing) */}
@@ -233,9 +256,26 @@ export function PlayerBar() {
                   <MoreVertical className="w-4 h-4" />
                 </button>
 
-                {/* Glassmorphic Dropdown Popup Menu */}
+                {/* Liquid Glass Dropdown Popup Menu */}
                 {isMenuOpen && (
-                  <div className="absolute bottom-10 left-0 w-52 bg-zinc-950/95 border border-white/10 rounded-2xl p-1.5 shadow-[0_10px_35px_rgba(0,0,0,0.8)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div
+                    className="absolute bottom-12 left-0 w-56 rounded-2xl p-1.5 z-50 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-white/20 animate-in fade-in zoom-in-95 duration-150 transform-gpu will-change-transform"
+                    style={{
+                      WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+                      backdropFilter: 'blur(20px) saturate(140%)',
+                      background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 100%), rgba(20, 12, 36, 0.45)',
+                    }}
+                  >
+                    {/* Apple iOS Deep Blurred Album Art inside Dropdown */}
+                    {currentTrack?.albumArt && (
+                      <div className="absolute -inset-10 overflow-hidden pointer-events-none -z-10">
+                        <div
+                          className="absolute -inset-8 bg-cover bg-center filter blur-[18px] opacity-85 scale-120 transition-all duration-500"
+                          style={{ backgroundImage: `url(${currentTrack.albumArt})` }}
+                        />
+                        <div className="absolute inset-0 bg-black/25" />
+                      </div>
+                    )}
                     <button
                       onClick={() => {
                         openPlaylistModal(currentTrack);
@@ -475,10 +515,10 @@ export function PlayerBar() {
           <button
             onClick={toggleNowPlaying}
             disabled={!currentTrack}
-            className={`p-1.5 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 border ${
+            className={`p-2 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 border ${
               isNowPlaying
-                ? 'bg-purple-500/20 text-purple-200 border-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
-                : 'bg-white/5 text-zinc-300 hover:text-white border-white/10 hover:bg-white/10'
+                ? 'bg-purple-500/25 text-purple-200 border-purple-500/40 shadow-[0_0_16px_rgba(168,85,247,0.35)]'
+                : 'liquid-glass-pill text-zinc-300 hover:text-white'
             } disabled:opacity-40 disabled:cursor-not-allowed`}
             title={
               isNowPlaying

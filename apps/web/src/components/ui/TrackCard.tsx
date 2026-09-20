@@ -44,17 +44,21 @@ export function TrackCard({ track, contextQueue, trackIndex, queueSource, onRemo
       onClick={handlePlay}
       onMouseEnter={handleWarmup}
       onPointerDown={handleWarmup}
-      className={`group relative glass-card rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 ${
+      style={{
+        WebkitBackdropFilter: 'blur(28px) saturate(135%)',
+        backdropFilter: 'blur(28px) saturate(135%)',
+      }}
+      className={`group relative liquid-glass-card rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 transform-gpu will-change-transform ${
         isCurrentTrack
-          ? 'border-purple-500/50 ring-1 ring-purple-500/30 shadow-lg bg-purple-950/20'
-          : 'border-white/10 hover:border-purple-400/30 hover:shadow-xl'
+          ? 'border-purple-500/60 ring-1 ring-purple-500/40 shadow-[0_10px_30px_rgba(139,92,246,0.3)] bg-purple-950/35'
+          : 'border-white/10 hover:border-purple-400/40 hover:shadow-2xl'
       }`}
     >
       {/* ── Status Badges Overlay (Top-Left) ─────────────────────────── */}
       <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5">
         {/* Equalizer Playing Indicator Badge */}
         {isCurrentTrack && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/80 text-purple-200 border border-purple-500/40 text-[10px] font-semibold backdrop-blur-md shadow-md">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full liquid-glass-pill text-purple-200 border border-purple-500/50 text-[10px] font-semibold shadow-md">
             <EqualizerBars isPlaying={isPlaying} size="xs" />
             <span className="tracking-wide uppercase text-[9px] font-bold text-purple-300">
               {isPlaying ? 'Playing' : 'Paused'}

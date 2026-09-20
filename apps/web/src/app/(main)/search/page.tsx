@@ -180,9 +180,11 @@ export default function SearchPage() {
                   inputRef.current?.blur();
                 }
               }}
-              className="block w-full pl-12 pr-12 py-4 border border-white/10 leading-5 bg-white/5 text-foreground placeholder-muted-foreground focus:outline-none focus:bg-white/10 focus:border-primary/50 transition-all text-base md:text-lg"
+              className="block w-full pl-12 pr-12 py-4 border border-white/10 leading-5 liquid-glass-card text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 transition-all text-base md:text-lg transform-gpu will-change-transform"
               style={{
-                borderRadius: hasSuggestions ? '1rem 1rem 0 0' : '1rem',
+                borderRadius: hasSuggestions ? '1.25rem 1.25rem 0 0' : '1.25rem',
+                WebkitBackdropFilter: 'blur(28px) saturate(135%)',
+                backdropFilter: 'blur(28px) saturate(135%)',
               }}
               placeholder="Search songs, artists, albums, playlists..."
               autoComplete="off"
@@ -204,8 +206,11 @@ export default function SearchPage() {
         {hasSuggestions && (
           <div
             ref={suggestionsRef}
-            className="absolute left-0 right-0 z-50 border border-white/10 border-t-0 rounded-b-2xl shadow-2xl overflow-hidden max-h-[420px] overflow-y-auto"
-            style={{ background: 'rgba(15,15,30,0.97)', backdropFilter: 'blur(24px)' }}
+            className="absolute left-0 right-0 z-50 border border-white/10 border-t-0 rounded-b-2xl shadow-2xl overflow-hidden max-h-[420px] overflow-y-auto liquid-glass-dropdown"
+            style={{
+              WebkitBackdropFilter: 'blur(28px) saturate(135%)',
+              backdropFilter: 'blur(28px) saturate(135%)',
+            }}
           >
             {querySuggestions.length > 0 && (
               <div className="px-4 pt-2 pb-1">
@@ -240,7 +245,6 @@ export default function SearchPage() {
                     <span className="text-primary font-medium">{query}</span>
                     {s.text.slice(query.length)}
                   </span>
-                  <ArrowUpLeft className="h-3.5 w-3.5 text-muted-foreground/30 ml-auto shrink-0" />
                 </button>
               );
             })}
@@ -253,8 +257,8 @@ export default function SearchPage() {
                   </span>
                 </div>
                 {songSuggestions.map((s, i) => {
-                  const globalIdx = querySuggestions.length + i;
-                  const isSelected = selectedIndex === globalIdx;
+                  const itemIndex = querySuggestions.length + i;
+                  const isSelected = selectedIndex === itemIndex;
                   return (
                     <button
                       key={`s-${i}`}
@@ -264,13 +268,13 @@ export default function SearchPage() {
                         }
                       }}
                       type="button"
-                      className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors group cursor-pointer ${
+                      className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors group cursor-pointer ${
                         isSelected
                           ? 'bg-purple-500/25 text-white border-l-2 border-primary'
                           : 'hover:bg-white/8 text-foreground/90'
                       }`}
                       onClick={() => handleSearch(s.title)}
-                      onMouseEnter={() => setSelectedIndex(globalIdx)}
+                      onMouseEnter={() => setSelectedIndex(itemIndex)}
                       onMouseDown={(e) => e.preventDefault()}
                     >
                       <div className="w-8 h-8 rounded-md bg-primary/20 flex items-center justify-center shrink-0">
@@ -305,7 +309,7 @@ export default function SearchPage() {
                 className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                   isActive
                     ? 'bg-gradient-to-r from-purple-400 via-primary to-purple-200 text-black shadow-[0_2px_16px_rgba(168,85,247,0.5)] font-bold scale-105'
-                    : 'glass-pill text-purple-200/70 hover:text-white border border-purple-500/20 hover:border-purple-400/40'
+                    : 'liquid-glass-pill text-purple-200/80 hover:text-white'
                 }`}
               >
                 {cat.label}

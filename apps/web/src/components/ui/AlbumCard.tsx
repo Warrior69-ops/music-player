@@ -88,9 +88,13 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({ album }) => {
           handleCardClick();
         }
       }}
-      className={`group relative flex flex-col p-3.5 rounded-2xl glass-card transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none ${
+      style={{
+        WebkitBackdropFilter: 'blur(28px) saturate(135%)',
+        backdropFilter: 'blur(28px) saturate(135%)',
+      }}
+      className={`group relative flex flex-col p-3.5 rounded-2xl liquid-glass-card transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none transform-gpu will-change-transform ${
         isThisAlbumPlaying
-          ? 'border-purple-500/60 ring-1 ring-purple-500/40 shadow-[0_12px_35px_rgba(0,0,0,0.7),0_0_24px_rgba(139,92,246,0.35)] bg-purple-950/30'
+          ? 'border-purple-500/60 ring-1 ring-purple-500/40 shadow-[0_12px_35px_rgba(0,0,0,0.7),0_0_24px_rgba(139,92,246,0.35)] bg-purple-950/35'
           : 'border-white/10 hover:border-purple-400/40 hover:shadow-[0_12px_30px_rgba(0,0,0,0.6),0_0_20px_rgba(139,92,246,0.25)]'
       }`}
     >
@@ -113,7 +117,7 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({ album }) => {
 
         {/* Status Badge: Equalizer when playing */}
         {isThisAlbumPlaying && (
-          <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-950/90 text-purple-200 border border-purple-500/50 text-[10px] font-semibold backdrop-blur-md shadow-[0_0_12px_rgba(139,92,246,0.45)]">
+          <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full liquid-glass-pill text-purple-200 border border-purple-500/50 text-[10px] font-semibold shadow-[0_0_12px_rgba(139,92,246,0.45)]">
             <EqualizerBars isPlaying={isPlaying} size="xs" />
             <span className="tracking-wide uppercase text-[9px] font-bold text-purple-300">Album</span>
           </div>

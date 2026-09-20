@@ -31,6 +31,7 @@ import { useFavorites, useAddFavorite, useRemoveFavorite, useLyrics } from '@/ho
 import { EqualizerBars } from '@/components/ui/EqualizerBars';
 import { LyricsView } from '@/components/ui/LyricsView';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
 
 function formatDuration(seconds?: number): string {
   if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
@@ -153,14 +154,29 @@ export default function NowPlayingPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-8.5rem)] flex flex-col lg:flex-row gap-6 lg:gap-10 p-4 md:p-8 lg:p-10 overflow-hidden select-none">
+    <div className="relative isolate h-[calc(100vh-8.5rem)] flex flex-col lg:flex-row gap-6 lg:gap-10 p-4 md:p-8 lg:p-10 overflow-hidden select-none">
+      {/* ── Immersive Ambient Blurred Album Art Canvas (Shines vibrantly through Liquid Glass) ── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 select-none">
+        {currentTrack.albumArt && (
+          <div
+            className="absolute -inset-28 bg-cover bg-center filter blur-[80px] opacity-70 scale-135 transition-all duration-1000 transform-gpu will-change-transform"
+            style={{ backgroundImage: `url(${currentTrack.albumArt})` }}
+          />
+        )}
+        {/* Vibrant fluid gradient aura orbs for optical saturation */}
+        <div className="absolute top-0 -left-10 w-[550px] h-[550px] rounded-full bg-purple-600/40 blur-[110px] animate-pulse" />
+        <div className="absolute bottom-0 right-10 w-[600px] h-[600px] rounded-full bg-violet-600/35 blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-fuchsia-600/25 blur-[130px]" />
+        <div className="absolute inset-0 bg-black/25" />
+      </div>
+
       {/* ── Left Pane: Grand Artwork & Track Metadata ───────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center min-w-0 py-2 relative">
+      <div className="flex-1 flex flex-col items-center justify-center min-w-0 py-2 relative z-10">
         {/* Ambient Glow Backdrop */}
-        <div className="absolute w-[360px] md:w-[480px] aspect-square rounded-full bg-purple-600/15 blur-[100px] pointer-events-none -z-10" />
+        <div className="absolute w-[360px] md:w-[480px] aspect-square rounded-full bg-purple-600/30 blur-[100px] pointer-events-none" />
 
         {/* Hero Artwork with subtle vinyl reflection */}
-        <div className="relative w-full max-w-[340px] sm:max-w-[400px] md:max-w-[430px] aspect-square rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-white/10 group">
+        <div className="relative w-full max-w-[340px] sm:max-w-[400px] md:max-w-[430px] aspect-square rounded-3xl overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.85)] border border-white/20 group">
           {currentTrack.albumArt ? (
             <img
               src={currentTrack.albumArt}
@@ -222,15 +238,15 @@ export default function NowPlayingPage() {
             )}
           </div>
 
-          {/* Quick Action Pills Row */}
+          {/* Quick Action Pills Row with Liquid Glass finish */}
           <div className="flex items-center gap-3 mt-4">
             {/* Favorite */}
             <button
               onClick={handleFavoriteToggle}
               className={`p-2.5 rounded-full border transition-all duration-200 hover:scale-110 active:scale-95 ${
                 isFavorite
-                  ? 'bg-primary/20 border-primary/40 text-primary'
-                  : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white'
+                  ? 'bg-primary/25 border-primary/50 text-primary shadow-[0_0_15px_rgba(168,85,247,0.35)]'
+                  : 'liquid-glass-pill text-zinc-400 hover:text-white'
               }`}
               title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
             >
@@ -240,7 +256,7 @@ export default function NowPlayingPage() {
             {/* Add to Playlist */}
             <button
               onClick={() => openPlaylistModal(currentTrack)}
-              className="p-2.5 rounded-full bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:scale-110 active:scale-95 transition-all"
+              className="p-2.5 rounded-full liquid-glass-pill text-zinc-400 hover:text-white hover:scale-110 active:scale-95 transition-all"
               title="Add to Playlist"
             >
               <Plus className="w-4 h-4" />
@@ -249,7 +265,7 @@ export default function NowPlayingPage() {
             {/* Share */}
             <button
               onClick={handleShare}
-              className="p-2.5 rounded-full bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:scale-110 active:scale-95 transition-all"
+              className="p-2.5 rounded-full liquid-glass-pill text-zinc-400 hover:text-white hover:scale-110 active:scale-95 transition-all"
               title="Copy link"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
@@ -260,8 +276,8 @@ export default function NowPlayingPage() {
               onClick={toggleShuffle}
               className={`p-2.5 rounded-full border transition-all duration-200 hover:scale-110 active:scale-95 ${
                 isShuffle
-                  ? 'bg-primary/20 border-primary/40 text-primary'
-                  : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white'
+                  ? 'bg-primary/25 border-primary/50 text-primary shadow-[0_0_15px_rgba(168,85,247,0.35)]'
+                  : 'liquid-glass-pill text-zinc-400 hover:text-white'
               }`}
               title={isShuffle ? 'Shuffle is ON' : 'Shuffle is OFF'}
             >
@@ -271,61 +287,48 @@ export default function NowPlayingPage() {
         </div>
       </div>
 
-      {/* ── Right Pane: Tabs & Up Next / Autoplay Queue ─────────────────── */}
-      <div className="w-full lg:w-[480px] xl:w-[540px] flex flex-col h-full glass-card rounded-3xl border border-white/10 overflow-hidden shadow-2xl backdrop-blur-2xl">
-        {/* Navigation Tabs (UP NEXT | LYRICS | RELATED) */}
+      {/* ── Right Pane: Tabs & Up Next / Autoplay Queue in Liquid Glass ──── */}
+      <div
+        className="w-full lg:w-[480px] xl:w-[540px] flex flex-col h-full liquid-glass-card rounded-3xl border border-white/15 overflow-hidden shadow-2xl relative z-10 transform-gpu will-change-transform"
+        style={{
+          WebkitBackdropFilter: 'blur(28px) saturate(135%)',
+          backdropFilter: 'blur(28px) saturate(135%)',
+        }}
+      >
+        {/* Navigation Tabs (UP NEXT | LYRICS | RELATED) with Liquid Sliding Pill */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => setActiveTab('upnext')}
-              className={`text-xs sm:text-sm font-bold tracking-wider uppercase pb-2 transition-all relative ${
-                activeTab === 'upnext'
-                  ? 'text-white'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              Up Next
-              {activeTab === 'upnext' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full shadow-[0_0_12px_rgba(168,85,247,0.8)]" />
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('lyrics')}
-              className={`text-xs sm:text-sm font-bold tracking-wider uppercase pb-2 transition-all relative ${
-                activeTab === 'lyrics'
-                  ? 'text-white'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              Lyrics
-              {activeTab === 'lyrics' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full shadow-[0_0_12px_rgba(168,85,247,0.8)]" />
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('related')}
-              className={`text-xs sm:text-sm font-bold tracking-wider uppercase pb-2 transition-all relative ${
-                activeTab === 'related'
-                  ? 'text-white'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              Related
-              {activeTab === 'related' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full shadow-[0_0_12px_rgba(168,85,247,0.8)]" />
-              )}
-            </button>
+          <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/[0.04] border border-white/10">
+            {(['upnext', 'lyrics', 'related'] as const).map((tab) => {
+              const label = tab === 'upnext' ? 'Up Next' : tab === 'lyrics' ? 'Lyrics' : 'Related';
+              const isActive = activeTab === tab;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`relative px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors z-10 ${
+                    isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="nowPlayingTabPill"
+                      className="absolute inset-0 rounded-full bg-primary/25 border border-primary/40 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                      transition={{ type: 'spring', stiffness: 420, damping: 34, mass: 0.5 }}
+                    />
+                  )}
+                  <span className="relative z-20">{label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Autoplay status indicator pill */}
           <button
             onClick={toggleAutoplay}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all ${
               isAutoplayEnabled
-                ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
-                : 'bg-white/5 text-zinc-400 border border-white/10 hover:text-white'
+                ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.25)]'
+                : 'liquid-glass-pill text-zinc-400 hover:text-white'
             }`}
             title={isAutoplayEnabled ? 'Infinite Autoplay is active' : 'Autoplay is paused'}
           >
