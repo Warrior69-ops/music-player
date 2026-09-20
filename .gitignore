@@ -57,3 +57,12 @@ Thumbs.db
 
 # Turborepo
 .turbo
+
+# AI Agent files
+*.md
+!README.md
+.agent/
+.agents/
+.gemini/
+.gsd/
+Chat_History.docx
