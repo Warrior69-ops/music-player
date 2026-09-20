@@ -61,19 +61,18 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="h-screen w-full flex flex-col bg-background text-foreground overflow-hidden">
-      <div className="flex-1 flex overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 flex flex-col overflow-hidden relative">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
-          
-          <Header />
-          <div className="flex-1 overflow-y-auto z-10">
-            {children}
-          </div>
-        </main>
+    <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden relative min-w-0">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+        
+        <Header />
+        <div className="flex-1 overflow-y-auto z-10 min-w-0">
+          {children}
+        </div>
+        <PlayerBar />
       </div>
-      <PlayerBar />
+
       <PlaylistModal 
         isOpen={isPlaylistModalOpen} 
         onClose={closePlaylistModal} 

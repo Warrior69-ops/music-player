@@ -40,31 +40,31 @@ export function Sidebar() {
 
       <nav className="flex-1 px-4 space-y-7 overflow-y-auto">
         <div className="space-y-1">
-          <p className="px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Discover</p>
+          <p className="px-3 text-[11px] font-bold text-white uppercase tracking-wider mb-2">Discover</p>
           <NavLink href="/" icon={Home} isActive={pathname === '/'}>Home</NavLink>
           <NavLink href="/search" icon={Search} isActive={pathname.startsWith('/search')}>Search</NavLink>
         </div>
 
         <div className="space-y-1">
-          <p className="px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Your Library</p>
+          <p className="px-3 text-[11px] font-bold text-white uppercase tracking-wider mb-2">Your Library</p>
           <NavLink href="/library" icon={Library} isActive={pathname.startsWith('/library')}>Playlists</NavLink>
           <NavLink href="/favorites" icon={Heart} isActive={pathname.startsWith('/favorites')}>Favorites</NavLink>
           <NavLink href="/history" icon={Clock} isActive={pathname.startsWith('/history')}>Recently Played</NavLink>
         </div>
       </nav>
 
-      {/* User Info & Quick Logout Footer with Liquid Glass finish */}
+      {/* User Info & Quick Logout Footer with Liquid Glass finish (aligned beside PlayerBar) */}
       {user && (
-        <div className="p-3 mx-3 mb-3 rounded-2xl liquid-glass-card flex items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-purple-600/30 border border-primary/40 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+        <div className="p-3 mx-2.5 mb-2.5 rounded-2xl liquid-glass-card flex items-center justify-between gap-2.5 h-[76px] shrink-0 border border-white/12">
+          <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/40 to-purple-600/40 border border-primary/50 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-md">
               {initial}
             </div>
-            <div className="overflow-hidden">
-              <p className="text-xs font-semibold text-white truncate">
+            <div className="overflow-hidden min-w-0">
+              <p className="text-xs font-bold text-white truncate drop-shadow-sm">
                 {user.name || user.username || 'User'}
               </p>
-              <p className="text-[10px] text-zinc-400 truncate">
+              <p className="text-[10px] text-white/90 truncate mt-0.5 font-normal">
                 {user.email}
               </p>
             </div>
@@ -73,7 +73,7 @@ export function Sidebar() {
           <button
             onClick={handleLogout}
             title="Log Out"
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0 active:scale-95"
+            className="p-1.5 rounded-lg text-white/80 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0 active:scale-95 cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -98,8 +98,8 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group active:scale-95",
-        isActive ? "text-white" : "text-muted-foreground hover:text-white"
+        "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group active:scale-95 text-white",
+        isActive ? "text-white" : "text-white/80 hover:text-white"
       )}
     >
       {/* Sliding Liquid Indicator Pill with Framer Motion Spring Dynamics */}
@@ -115,8 +115,8 @@ function NavLink({
           }}
         />
       )}
-      <Icon className={cn("w-5 h-5 relative z-10 transition-colors", isActive ? "text-primary" : "group-hover:text-white")} />
-      <span className="relative z-10">{children}</span>
+      <Icon className={cn("w-5 h-5 relative z-10 transition-colors", isActive ? "text-primary drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" : "text-white/80 group-hover:text-white")} />
+      <span className="relative z-10 text-white font-medium">{children}</span>
     </Link>
   );
 }

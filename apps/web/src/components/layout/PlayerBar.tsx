@@ -167,20 +167,20 @@ export function PlayerBar() {
         </div>
       )}
 
-      {/* Refined Dock with Liquid Glass Optics */}
+      {/* Refined Dock with Liquid Glass Optics (Height reduced by 20% to 76px) */}
       <div
-        className="relative z-10 h-24 liquid-glass-dock rounded-2xl flex items-center justify-between px-6 transition-all duration-300 transform-gpu will-change-transform"
+        className="relative z-10 h-[76px] liquid-glass-dock rounded-2xl flex items-center justify-between px-5 transition-all duration-300 transform-gpu will-change-transform"
         style={{
           WebkitBackdropFilter: 'blur(20px) saturate(140%)',
           backdropFilter: 'blur(20px) saturate(140%)',
         }}
       >
         {/* ── Left Section: Track Info, Favorite & 3-Dots Menu ──────────── */}
-        <div className="w-[30%] flex items-center gap-3 min-w-0">
+        <div className="w-[30%] flex items-center gap-2.5 min-w-0">
           {/* Clickable Album Thumbnail (Opens Now Playing) */}
           <div
             onClick={toggleNowPlaying}
-            className="relative w-13 h-13 rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-sm shrink-0 group cursor-pointer hover:border-purple-500/50 transition-all hover:scale-105 active:scale-95"
+            className="relative w-11 h-11 rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-sm shrink-0 group cursor-pointer hover:border-purple-500/50 transition-all hover:scale-105 active:scale-95"
             title={isNowPlaying ? 'Now Playing screen open' : 'Click to open Now Playing'}
           >
             {currentTrack?.albumArt ? (
@@ -191,11 +191,11 @@ export function PlayerBar() {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-white/5">
-                <div className="w-5 h-5 rounded-full bg-white/10" />
+                <div className="w-4 h-4 rounded-full bg-white/10" />
               </div>
             )}
             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <ChevronUp className="w-4 h-4 text-white drop-shadow" />
+              <ChevronUp className="w-3.5 h-3.5 text-white drop-shadow" />
             </div>
           </div>
 
@@ -350,9 +350,9 @@ export function PlayerBar() {
         </div>
 
         {/* ── Center Section: Controls & Aesthetic Zigzag Progress Bar ── */}
-        <div className="flex flex-col items-center justify-center flex-1 max-w-xl px-4 gap-1.5">
+        <div className="flex flex-col items-center justify-center flex-1 max-w-xl px-3 gap-0.5">
           {/* Playback Button Row */}
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4">
             {/* Shuffle */}
             <button
               onClick={toggleShuffle}
@@ -363,7 +363,7 @@ export function PlayerBar() {
               }`}
               title={isShuffle ? 'Shuffle is ON (Click to turn OFF)' : 'Shuffle is OFF (Click to turn ON)'}
             >
-              <Shuffle className="w-4 h-4" />
+              <Shuffle className="w-3.5 h-3.5" />
             </button>
 
             {/* Previous Track */}
@@ -372,22 +372,22 @@ export function PlayerBar() {
               className="text-zinc-300 hover:text-white hover:scale-110 active:scale-95 transition-all p-1"
               title="Previous Track"
             >
-              <SkipBack className="w-5 h-5 fill-current" />
+              <SkipBack className="w-4 h-4 fill-current" />
             </button>
 
             {/* Minimalist White Play/Pause Button */}
             <button
               onClick={togglePlay}
               disabled={!currentTrack || isLoading}
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-black hover:scale-105 active:scale-95 shadow-md hover:bg-zinc-100 transition-all disabled:opacity-50 disabled:hover:scale-100"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white text-black hover:scale-105 active:scale-95 shadow-md hover:bg-zinc-100 transition-all disabled:opacity-50 disabled:hover:scale-100"
               title={isPlaying ? 'Pause' : 'Play'}
             >
               {isLoading ? (
-                <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                <div className="w-3.5 h-3.5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
               ) : isPlaying ? (
-                <Pause className="w-4.5 h-4.5 fill-current" />
+                <Pause className="w-4 h-4 fill-current" />
               ) : (
-                <Play className="w-4.5 h-4.5 fill-current translate-x-0.5" />
+                <Play className="w-4 h-4 fill-current translate-x-0.5" />
               )}
             </button>
 
@@ -397,7 +397,7 @@ export function PlayerBar() {
               className="text-zinc-300 hover:text-white hover:scale-110 active:scale-95 transition-all p-1"
               title="Next Track"
             >
-              <SkipForward className="w-5 h-5 fill-current" />
+              <SkipForward className="w-4 h-4 fill-current" />
             </button>
           </div>
 

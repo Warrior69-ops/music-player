@@ -89,25 +89,33 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({ album }) => {
         }
       }}
       style={{
-        WebkitBackdropFilter: 'blur(28px) saturate(135%)',
-        backdropFilter: 'blur(28px) saturate(135%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(135%)',
+        backdropFilter: 'blur(24px) saturate(135%)',
       }}
-      className={`group relative flex flex-col p-3.5 rounded-2xl liquid-glass-card transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none transform-gpu will-change-transform ${
+      className={`group relative aspect-square w-full rounded-2xl liquid-glass-card overflow-hidden transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none transform-gpu will-change-transform ${
         isThisAlbumPlaying
-          ? 'border-purple-500/60 ring-1 ring-purple-500/40 shadow-[0_12px_35px_rgba(0,0,0,0.7),0_0_24px_rgba(139,92,246,0.35)] bg-purple-950/35'
-          : 'border-white/10 hover:border-purple-400/40 hover:shadow-[0_12px_30px_rgba(0,0,0,0.6),0_0_20px_rgba(139,92,246,0.25)]'
+          ? 'border-purple-500/70 ring-1 ring-purple-500/50 shadow-[0_12px_35px_rgba(0,0,0,0.7),0_0_24px_rgba(139,92,246,0.35)]'
+          : 'border-white/12 hover:border-purple-400/40 hover:shadow-[0_12px_30px_rgba(0,0,0,0.6),0_0_20px_rgba(139,92,246,0.25)]'
       }`}
     >
-      {/* Square Cover Artwork with Floating Play Button */}
-      <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-purple-950/40 mb-3 shadow-lg group-hover:shadow-purple-500/20 transition-all duration-300">
+      {/* ── Status Badge (Top-Left) ─────────────────────────────────── */}
+      {isThisAlbumPlaying && (
+        <div className="absolute top-2.5 left-2.5 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full liquid-glass-pill text-purple-200 border border-purple-500/50 text-[10px] font-semibold shadow-[0_0_12px_rgba(139,92,246,0.45)] pointer-events-none">
+          <EqualizerBars isPlaying={isPlaying} size="xs" />
+          <span className="tracking-wide uppercase text-[9px] font-bold text-purple-300">Album</span>
+        </div>
+      )}
+
+      {/* ── Square Cover Artwork Layer (Blurred in Default Glass State, Clear on Hover) ── */}
+      <div className="absolute inset-0 overflow-hidden bg-purple-950/40">
         {album.thumbnail ? (
           <Image
             src={album.thumbnail}
             alt={album.title}
             fill
             unoptimized
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
-            sizes="(max-width: 768px) 160px, 200px"
+            className="object-cover filter blur-[14px] saturate-[130%] scale-110 group-hover:filter-none group-hover:scale-100 transition-all duration-500 ease-out transform-gpu will-change-transform"
+            sizes="(max-width: 768px) 180px, 240px"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-950/50 to-purple-950/70">
@@ -115,59 +123,55 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({ album }) => {
           </div>
         )}
 
-        {/* Status Badge: Equalizer when playing */}
-        {isThisAlbumPlaying && (
-          <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full liquid-glass-pill text-purple-200 border border-purple-500/50 text-[10px] font-semibold shadow-[0_0_12px_rgba(139,92,246,0.45)]">
-            <EqualizerBars isPlaying={isPlaying} size="xs" />
-            <span className="tracking-wide uppercase text-[9px] font-bold text-purple-300">Album</span>
-          </div>
-        )}
+        {/* Ambient Inner Glass Rim */}
+        <div className="absolute inset-0 ring-1 ring-inset ring-white/15 pointer-events-none z-10" />
 
-        {/* Ambient Dark Overlay on hover */}
-        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-        {/* Floating Play Button Overlay: Starts playback without opening album */}
-        <button
-          type="button"
-          aria-label={isThisAlbumPlaying ? `Pause ${album.title}` : `Play ${album.title}`}
-          onClick={handlePlayClick}
-          onPointerDown={(e) => e.stopPropagation()}
-          className={`absolute bottom-3 right-3 w-11 h-11 rounded-full bg-gradient-to-tr from-purple-400 via-white to-purple-200 text-black flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 z-10 cursor-pointer ${
-            isThisAlbumPlaying || isLoading
-              ? 'opacity-100 translate-y-0 shadow-[0_0_20px_rgba(168,85,247,0.7)]'
-              : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 shadow-xl'
-          }`}
-        >
-          {isLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-black" />
-          ) : isThisAlbumPlaying ? (
-            <Pause className="w-5 h-5 fill-current text-black" />
-          ) : (
-            <Play className="w-5 h-5 fill-current ml-0.5 text-black" />
-          )}
-        </button>
+        {/* Floating Play Button Overlay on Hover */}
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <button
+            type="button"
+            aria-label={isThisAlbumPlaying ? `Pause ${album.title}` : `Play ${album.title}`}
+            onClick={handlePlayClick}
+            onPointerDown={(e) => e.stopPropagation()}
+            className={`w-12 h-12 rounded-full bg-gradient-to-tr from-purple-400 via-white to-purple-200 text-black flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 pointer-events-auto cursor-pointer ${
+              isThisAlbumPlaying || isLoading
+                ? 'opacity-100 scale-100 shadow-[0_0_25px_rgba(168,85,247,0.85)]'
+                : 'opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 shadow-xl'
+            }`}
+          >
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-black" />
+            ) : isThisAlbumPlaying ? (
+              <Pause className="w-5 h-5 fill-current text-black" />
+            ) : (
+              <Play className="w-5 h-5 fill-current ml-0.5 text-black" />
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Album Title */}
-      <h3
-        className={`text-sm font-semibold truncate transition-colors ${
-          isThisAlbumPlaying
-            ? 'text-purple-300 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]'
-            : 'text-white group-hover:text-purple-200'
-        }`}
-      >
-        {album.title}
-      </h3>
+      {/* ── Integrated Liquid Glass Typography Plate (Directly on Artwork) ── */}
+      <div className="absolute bottom-0 inset-x-0 p-3 z-20 liquid-glass-card-overlay rounded-b-2xl select-none">
+        <h3
+          className={`font-bold truncate text-xs sm:text-sm drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.9)] transition-colors ${
+            isThisAlbumPlaying
+              ? 'text-purple-300 drop-shadow-[0_0_10px_rgba(168,85,247,0.7)]'
+              : 'text-white group-hover:text-purple-200'
+          }`}
+          title={album.title}
+        >
+          {album.title}
+        </h3>
 
-      {/* Subtitle: Artist & Year */}
-      <div className="flex items-center gap-1.5 mt-1 text-xs text-purple-300/60">
-        {album.year && (
-          <span className="font-medium text-purple-200/80">{album.year}</span>
-        )}
-        {album.year && album.artist && <span>•</span>}
-        {album.artist && (
-          <span className="truncate">{album.artist}</span>
-        )}
+        <div className="flex items-center gap-1.5 mt-0.5 text-[11px] sm:text-xs text-purple-200/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+          {album.year && (
+            <span className="font-medium text-purple-200/90">{album.year}</span>
+          )}
+          {album.year && album.artist && <span>•</span>}
+          {album.artist && (
+            <span className="truncate max-w-[140px]">{album.artist}</span>
+          )}
+        </div>
       </div>
     </div>
   );

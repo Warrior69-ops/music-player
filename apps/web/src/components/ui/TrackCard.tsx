@@ -45,20 +45,20 @@ export function TrackCard({ track, contextQueue, trackIndex, queueSource, onRemo
       onMouseEnter={handleWarmup}
       onPointerDown={handleWarmup}
       style={{
-        WebkitBackdropFilter: 'blur(28px) saturate(135%)',
-        backdropFilter: 'blur(28px) saturate(135%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(135%)',
+        backdropFilter: 'blur(24px) saturate(135%)',
       }}
-      className={`group relative liquid-glass-card rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 transform-gpu will-change-transform ${
+      className={`group relative aspect-square w-full liquid-glass-card rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 transform-gpu will-change-transform ${
         isCurrentTrack
-          ? 'border-purple-500/60 ring-1 ring-purple-500/40 shadow-[0_10px_30px_rgba(139,92,246,0.3)] bg-purple-950/35'
-          : 'border-white/10 hover:border-purple-400/40 hover:shadow-2xl'
+          ? 'border-purple-500/70 ring-1 ring-purple-500/50 shadow-[0_10px_30px_rgba(139,92,246,0.35)]'
+          : 'border-white/12 hover:border-purple-400/40 hover:shadow-2xl'
       }`}
     >
       {/* ── Status Badges Overlay (Top-Left) ─────────────────────────── */}
-      <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5">
+      <div className="absolute top-2.5 left-2.5 z-30 flex items-center gap-1.5 pointer-events-none">
         {/* Equalizer Playing Indicator Badge */}
         {isCurrentTrack && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full liquid-glass-pill text-purple-200 border border-purple-500/50 text-[10px] font-semibold shadow-md">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full liquid-glass-pill text-purple-200 border border-purple-500/50 text-[10px] font-semibold shadow-lg">
             <EqualizerBars isPlaying={isPlaying} size="xs" />
             <span className="tracking-wide uppercase text-[9px] font-bold text-purple-300">
               {isPlaying ? 'Playing' : 'Paused'}
@@ -68,17 +68,17 @@ export function TrackCard({ track, contextQueue, trackIndex, queueSource, onRemo
       </div>
 
       {/* ── 3-Dot Context Menu (Top-Right) ───────────────────────────── */}
-      <div className="absolute top-2.5 right-2.5 z-20">
+      <div className="absolute top-2.5 right-2.5 z-30">
         <TrackMenu track={track} onRemoveFromPlaylist={onRemoveFromPlaylist} />
       </div>
 
-      {/* ── Artwork Container ────────────────────────────────────────── */}
-      <div className="aspect-square relative overflow-hidden bg-purple-950/40">
+      {/* ── Artwork Layer (Blurred in Default Glass State, Clear on Hover) ── */}
+      <div className="absolute inset-0 overflow-hidden bg-purple-950/40">
         {track.albumArt ? (
           <img
             src={track.albumArt}
             alt={track.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+            className="w-full h-full object-cover filter blur-[14px] saturate-[130%] scale-110 group-hover:filter-none group-hover:scale-100 transition-all duration-500 ease-out transform-gpu will-change-transform"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-950/50 to-purple-950/70">
@@ -87,13 +87,13 @@ export function TrackCard({ track, contextQueue, trackIndex, queueSource, onRemo
         )}
 
         {/* Ambient Inner Glass Rim */}
-        <div className="absolute inset-0 ring-1 ring-inset ring-white/10 pointer-events-none" />
+        <div className="absolute inset-0 ring-1 ring-inset ring-white/15 pointer-events-none z-10" />
 
-        {/* Quick-Play Circular Floating Button on Hover */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+        {/* Floating Play / Pause Circular Button at Center on Hover */}
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
           <button
             onClick={handlePlay}
-            className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-400 via-white to-purple-200 text-black shadow-[0_0_20px_rgba(168,85,247,0.8)] hover:scale-110 active:scale-95 flex items-center justify-center transition-all duration-200"
+            className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-400 via-white to-purple-200 text-black shadow-[0_0_25px_rgba(168,85,247,0.85)] hover:scale-110 active:scale-95 flex items-center justify-center transition-all duration-300 pointer-events-auto opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 cursor-pointer"
             title={isCurrentTrack && isPlaying ? 'Pause' : 'Play'}
           >
             {isCurrentTrack && isPlaying ? (
@@ -105,19 +105,19 @@ export function TrackCard({ track, contextQueue, trackIndex, queueSource, onRemo
         </div>
       </div>
 
-      {/* ── Track Details: Title & Artist ────────────────────────────── */}
-      <div className="p-3.5 bg-purple-950/10">
+      {/* ── Integrated Liquid Glass Typography Plate (Directly on Artwork) ── */}
+      <div className="absolute bottom-0 inset-x-0 p-3 z-20 liquid-glass-card-overlay rounded-b-2xl select-none">
         <h3
-          className={`font-semibold truncate text-sm transition-colors ${
+          className={`font-bold truncate text-xs sm:text-sm drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.9)] transition-colors ${
             isCurrentTrack
-              ? 'text-purple-300 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]'
+              ? 'text-purple-300 drop-shadow-[0_0_10px_rgba(168,85,247,0.7)]'
               : 'text-white group-hover:text-purple-200'
           }`}
           title={track.title}
         >
           {track.title}
         </h3>
-        <p className="text-xs text-purple-300/70 truncate mt-1" title={track.artist}>
+        <p className="text-[11px] sm:text-xs text-purple-200/80 truncate mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" title={track.artist}>
           {track.artist ? (
             <Link
               href={`/artist/${encodeURIComponent((track as any).artistId || track.artist)}`}
