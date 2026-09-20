@@ -26,6 +26,8 @@ services:
         value: AntigravityMusic/1.0.0 ( contact@example.com )
       - key: LRCLIB_USER_AGENT
         value: LRCGET v0.2.0 (https://github.com/tranxuanthang/lrcget)
+      - key: YT_COOKIES
+        sync: false
 
   # Next.js frontend
   - type: web

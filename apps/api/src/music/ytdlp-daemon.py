@@ -37,6 +37,35 @@ ydl_opts = {
     },
 }
 
+def _setup_cookies():
+    """Optional YouTube auth via YT_COOKIES env var (Netscape cookie file
+    content, e.g. exported with 'Get cookies.txt LOCALLY' for youtube.com).
+    Authenticated requests pass the datacenter bot check. Returns the
+    cookie file path, or None when unset/invalid."""
+    data = os.environ.get('YT_COOKIES', '')
+    if not data.strip():
+        return None
+    try:
+        import tempfile
+        fd, cookie_path = tempfile.mkstemp(prefix='yt-cookies-', suffix='.txt')
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write(data)
+            if not data.endswith('\n'):
+                f.write('\n')
+        return cookie_path
+    except Exception as e:
+        print(f'[daemon] cookie setup failed: {e}', file=sys.stderr, flush=True)
+        return None
+
+COOKIE_FILE = _setup_cookies()
+if COOKIE_FILE:
+    ydl_opts['cookiefile'] = COOKIE_FILE
+    # Authenticated: web client works and yields the best (opus) formats.
+    ydl_opts['extractor_args']['youtube']['player_client'] = [
+        'web', 'android_music', 'android',
+    ]
+    print('[daemon] using YT_COOKIES authentication', file=sys.stderr, flush=True)
+
 thread_local = threading.local()
 
 def get_ydl():
