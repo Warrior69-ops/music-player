@@ -60,9 +60,10 @@ def _setup_cookies():
 COOKIE_FILE = _setup_cookies()
 if COOKIE_FILE:
     ydl_opts['cookiefile'] = COOKIE_FILE
-    # Authenticated: web client works and yields the best (opus) formats.
+    # Authenticated: android_music returns direct https audio formats
+    # (web client is SABR-only and yields "Requested format is not available").
     ydl_opts['extractor_args']['youtube']['player_client'] = [
-        'web', 'android_music', 'android',
+        'android_music', 'android', 'web',
     ]
     print('[daemon] using YT_COOKIES authentication', file=sys.stderr, flush=True)
 
