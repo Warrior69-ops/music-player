@@ -28,6 +28,13 @@ ydl_opts = {
     'skip_download': True,
     'lazy_playlist': True,
     'no_color': True,
+    # Render runs on datacenter IPs: the default web client gets
+    # "Sign in to confirm you're not a bot". Android clients bypass it.
+    'extractor_args': {
+        'youtube': {
+            'player_client': ['android_music', 'android', 'web'],
+        },
+    },
 }
 
 thread_local = threading.local()
