@@ -45,6 +45,7 @@ next-env.d.ts
 # NestJS / API
 /dist
 /apps/api/dist
+/apps/api/python-deps
 
 # IDEs and Editors
 .idea/

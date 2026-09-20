@@ -6,7 +6,7 @@ services:
     plan: free
     repo: https://github.com/Warrior69-ops/music-player.git
     branch: main
-    buildCommand: npm install && npm --workspace=apps/api run build && python -m pip install --quiet -r apps/api/requirements.txt
+    buildCommand: npm install && npm --workspace=apps/api run build && python -m pip install --quiet --target ./apps/api/python-deps -r apps/api/requirements.txt
     startCommand: npm --workspace=apps/api run start:prod
     healthCheckPath: /
     envVars:

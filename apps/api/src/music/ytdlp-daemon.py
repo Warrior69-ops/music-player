@@ -1,4 +1,22 @@
+import os
 import sys
+
+def _bootstrap_local_deps():
+    # Render persists only project files: yt-dlp is vendored into
+    # apps/api/python-deps during build (--target). Ensure it's importable
+    # regardless of which python runs this script or what the cwd is.
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(os.getcwd(), 'python-deps'),
+        os.path.normpath(os.path.join(here, '..', '..', 'python-deps')),
+    ]
+    for cand in candidates:
+        if os.path.isdir(cand) and cand not in sys.path:
+            sys.path.insert(0, cand)
+            break
+
+_bootstrap_local_deps()
+
 import threading
 import queue
 import yt_dlp
