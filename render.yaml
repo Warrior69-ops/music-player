@@ -4,6 +4,7 @@ services:
     name: music-player-api
     runtime: node
     plan: free
+    repo: https://github.com/Warrior69-ops/music-player.git
     branch: main
     buildCommand: npm install && npm --workspace=apps/api run build
     startCommand: npm --workspace=apps/api run start:prod
@@ -31,6 +32,7 @@ services:
     name: music-player-web
     runtime: node
     plan: free
+    repo: https://github.com/Warrior69-ops/music-player.git
     branch: main
     buildCommand: npm install && npm --workspace=apps/web run build
     startCommand: npm --workspace=apps/web run start
