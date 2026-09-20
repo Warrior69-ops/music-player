@@ -9,10 +9,14 @@ import {
   Heart,
   Plus,
   Trash2,
+  Sliders,
+  Moon,
 } from 'lucide-react';
 import { usePlayerStore, Track } from '@/store/usePlayerStore';
 import { useFavorites, useAddFavorite, useRemoveFavorite } from '@/hooks/queries';
 import { useUIStore } from '@/store/useUIStore';
+import { useEqualizerStore } from '@/store/useEqualizerStore';
+import { useSleepTimerStore } from '@/store/useSleepTimerStore';
 import { toast } from 'sonner';
 
 interface TrackMenuProps {
@@ -230,6 +234,34 @@ export const TrackMenu: React.FC<TrackMenuProps> = ({
             >
               <Plus className="w-3.5 h-3.5 text-zinc-400" />
               <span>Add to Playlist</span>
+            </button>
+
+            <div className="my-1 border-t border-white/10" />
+
+            {/* Equalizer & Audio FX */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                useEqualizerStore.getState().setIsModalOpen(true);
+                setIsOpen(false);
+              }}
+              className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-colors text-left"
+            >
+              <Sliders className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Equalizer & FX</span>
+            </button>
+
+            {/* Sleep Timer */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                useSleepTimerStore.getState().setIsModalOpen(true);
+                setIsOpen(false);
+              }}
+              className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-colors text-left"
+            >
+              <Moon className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Sleep Timer</span>
             </button>
 
             {/* Remove from this Playlist */}

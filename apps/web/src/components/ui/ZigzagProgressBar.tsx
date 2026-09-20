@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useRef, useState, useCallback, useId } from 'react';
+import React, { useRef, useState, useCallback, useId, useEffect } from 'react';
+import { useAudioStateStore } from '@/hooks/useAudioPlayer';
 
 interface ZigzagProgressBarProps {
-  currentTime: number;
-  duration: number;
   onSeek: (time: number) => void;
   isPlaying?: boolean;
   className?: string;
@@ -32,14 +31,53 @@ function generateZigzagPath(width = 1000, height = 20, step = 7, top = 4, bottom
   return path;
 }
 
+function getZigzagPoints(width = 1000, height = 20, step = 7, top = 4, bottom = 16): [number, number][] {
+  const points: [number, number][] = [[0, height / 2]];
+  let x = 0;
+  let isTop = true;
+  while (x < width) {
+    x += step;
+    const clampedX = Math.min(x, width);
+    const y = isTop ? top : bottom;
+    points.push([clampedX, y]);
+    isTop = !isTop;
+  }
+  return points;
+}
+
 const STATIC_ZIGZAG_PATH = generateZigzagPath(1000, 20, 7, 4, 16);
+const ZIGZAG_POINTS = getZigzagPoints(1000, 20, 7, 4, 16);
+
+// Calculates the exact y percentage on the zigzag path for any progress percentage [0, 100]
+function getExactZigzagYPercent(progressPercent: number): number {
+  const targetX = Math.max(0, Math.min(1000, (progressPercent / 100) * 1000));
+  let low = 0;
+  let high = ZIGZAG_POINTS.length - 1;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    if (ZIGZAG_POINTS[mid][0] < targetX) {
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  const p0 = ZIGZAG_POINTS[Math.max(0, high)];
+  const p1 = ZIGZAG_POINTS[Math.min(ZIGZAG_POINTS.length - 1, low)];
+  if (!p0 || !p1 || p0 === p1 || p1[0] === p0[0]) {
+    return p0 ? (p0[1] / 20) * 100 : 50;
+  }
+  const t = (targetX - p0[0]) / (p1[0] - p0[0]);
+  const y = p0[1] + t * (p1[1] - p0[1]);
+  return (y / 20) * 100;
+}
 
 export const ZigzagProgressBar: React.FC<ZigzagProgressBarProps> = ({
-  currentTime,
-  duration,
   onSeek,
+  isPlaying = false,
   className = '',
 }) => {
+  const currentTime = useAudioStateStore((s) => s.currentTime);
+  const duration = useAudioStateStore((s) => s.duration);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragProgress, setDragProgress] = useState<number | null>(null);
@@ -196,15 +234,16 @@ export const ZigzagProgressBar: React.FC<ZigzagProgressBarProps> = ({
             />
           </svg>
 
-          {/* 4. Sleek Diamond Playhead Bead */}
+          {/* 4. Sleek Precision Playhead Bead (Accurately rides the zigzag waveform line) */}
           <div
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 pointer-events-none transition-transform duration-150 z-20"
+            className="absolute pointer-events-none z-20 transition-[transform] duration-75"
             style={{
               left: `${displayProgress}%`,
+              top: `${getExactZigzagYPercent(displayProgress)}%`,
               transform: `translate(-50%, -50%) scale(${isDragging ? 1.25 : 1})`,
             }}
           >
-            <div className="w-2.5 h-2.5 rotate-45 rounded-[1.5px] bg-white border border-purple-400 shadow-sm transition-all group-hover:scale-125" />
+            <div className="w-1.5 h-1.5 rotate-45 rounded-[1px] bg-white border border-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.95)] transition-all group-hover:scale-125" />
           </div>
 
           {/* 5. Hover Timestamp Tooltip */}

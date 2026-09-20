@@ -44,11 +44,7 @@ export function TrackCard({ track, contextQueue, trackIndex, queueSource, onRemo
       onClick={handlePlay}
       onMouseEnter={handleWarmup}
       onPointerDown={handleWarmup}
-      style={{
-        WebkitBackdropFilter: 'blur(24px) saturate(135%)',
-        backdropFilter: 'blur(24px) saturate(135%)',
-      }}
-      className={`group relative aspect-square w-full liquid-glass-card rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 transform-gpu will-change-transform ${
+      className={`group relative aspect-square w-full liquid-glass-card rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 transform-gpu will-change-transform [content-visibility:auto] [contain-intrinsic-size:210px_210px] ${
         isCurrentTrack
           ? 'border-purple-500/70 ring-1 ring-purple-500/50 shadow-[0_10px_30px_rgba(139,92,246,0.35)]'
           : 'border-white/12 hover:border-purple-400/40 hover:shadow-2xl'
@@ -72,13 +68,13 @@ export function TrackCard({ track, contextQueue, trackIndex, queueSource, onRemo
         <TrackMenu track={track} onRemoveFromPlaylist={onRemoveFromPlaylist} />
       </div>
 
-      {/* ── Artwork Layer (Blurred in Default Glass State, Clear on Hover) ── */}
+      {/* ── Artwork Layer (Clear by Default, Glass Blur on Hover) ── */}
       <div className="absolute inset-0 overflow-hidden bg-purple-950/40">
         {track.albumArt ? (
           <img
             src={track.albumArt}
             alt={track.title}
-            className="w-full h-full object-cover filter blur-[14px] saturate-[130%] scale-110 group-hover:filter-none group-hover:scale-100 transition-all duration-500 ease-out transform-gpu will-change-transform"
+            className="w-full h-full object-cover scale-100 group-hover:blur-[8px] group-hover:scale-105 group-hover:saturate-[130%] transition-all duration-500 ease-out transform-gpu will-change-transform"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-950/50 to-purple-950/70">

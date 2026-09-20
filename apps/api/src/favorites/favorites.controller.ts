@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FavoritesService } from './favorites.service';
 import { AddFavoriteDto } from './dto/favorites.dto';
@@ -23,7 +32,10 @@ export class FavoritesController {
   }
 
   @Delete(':providerTrackId')
-  async removeFavorite(@Request() req, @Param('providerTrackId') providerTrackId: string) {
+  async removeFavorite(
+    @Request() req,
+    @Param('providerTrackId') providerTrackId: string,
+  ) {
     const userId = req.user._id || req.user.id;
     await this.favoritesService.removeFavorite(userId, providerTrackId);
     return { success: true, message: 'Track removed from favorites' };

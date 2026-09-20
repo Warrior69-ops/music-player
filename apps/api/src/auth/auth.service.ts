@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
@@ -10,7 +15,15 @@ import { EmailService } from '../email/email.service';
 import { EmailOTP, OtpType } from './schemas/email-otp.schema';
 import { PasswordResetSession } from './schemas/password-reset-session.schema';
 import { UserSession } from './schemas/user-session.schema';
-import { RegisterDto, LoginDto, VerifyEmailDto, ForgotPasswordDto, VerifyResetOtpDto, ResetPasswordDto, ChangePasswordDto } from './dto/auth.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  VerifyEmailDto,
+  ForgotPasswordDto,
+  VerifyResetOtpDto,
+  ResetPasswordDto,
+  ChangePasswordDto,
+} from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -19,7 +32,8 @@ export class AuthService {
     private jwtService: JwtService,
     private emailService: EmailService,
     @InjectModel(EmailOTP.name) private otpModel: Model<EmailOTP>,
-    @InjectModel(PasswordResetSession.name) private resetSessionModel: Model<PasswordResetSession>,
+    @InjectModel(PasswordResetSession.name)
+    private resetSessionModel: Model<PasswordResetSession>,
     @InjectModel(UserSession.name) private userSessionModel: Model<UserSession>,
   ) {}
 
@@ -50,7 +64,10 @@ export class AuthService {
     const otp = this.generateNumericOTP();
     const otpHash = await bcrypt.hash(otp, 10);
 
-    await this.otpModel.deleteMany({ email: user.email, type: OtpType.EMAIL_VERIFICATION });
+    await this.otpModel.deleteMany({
+      email: user.email,
+      type: OtpType.EMAIL_VERIFICATION,
+    });
 
     await new this.otpModel({
       email: user.email,
@@ -69,8 +86,10 @@ export class AuthService {
   }
 
   async verifyEmail(dto: VerifyEmailDto) {
-    const otpRecord = await this.otpModel.findOne({ email: dto.email, type: OtpType.EMAIL_VERIFICATION }).exec();
-    
+    const otpRecord = await this.otpModel
+      .findOne({ email: dto.email, type: OtpType.EMAIL_VERIFICATION })
+      .exec();
+
     if (!otpRecord || otpRecord.expiresAt < new Date()) {
       throw new BadRequestException('Invalid or expired OTP');
     }
@@ -80,7 +99,7 @@ export class AuthService {
     }
 
     const isValid = await bcrypt.compare(dto.otp, otpRecord.otpHash);
-    
+
     if (!isValid) {
       otpRecord.attempts += 1;
       await otpRecord.save();
@@ -98,10 +117,10 @@ export class AuthService {
     const payload = { sub: user._id, email: user.email };
     const accessToken = this.jwtService.sign(payload);
 
-    return { 
+    return {
       message: 'Email verified successfully',
       accessToken,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: { id: user._id, name: user.name, email: user.email },
     };
   }
 
@@ -116,7 +135,10 @@ export class AuthService {
     //   throw new UnauthorizedException('Please verify your email first');
     // }
 
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.passwordHash,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -141,20 +163,24 @@ export class AuthService {
         avatarUrl: user.avatarUrl,
         hasCompletedOnboarding: user.hasCompletedOnboarding ?? false,
         preferences: user.preferences,
-      }
+      },
     };
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {
-    const successMsg = 'If an account exists with that email, a verification code has been sent.';
-    
+    const successMsg =
+      'If an account exists with that email, a verification code has been sent.';
+
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) return { message: successMsg };
 
     const otp = this.generateNumericOTP();
     const otpHash = await bcrypt.hash(otp, 10);
 
-    await this.otpModel.deleteMany({ email: user.email, type: OtpType.PASSWORD_RESET });
+    await this.otpModel.deleteMany({
+      email: user.email,
+      type: OtpType.PASSWORD_RESET,
+    });
 
     await new this.otpModel({
       email: user.email,
@@ -169,8 +195,10 @@ export class AuthService {
   }
 
   async verifyResetOtp(dto: VerifyResetOtpDto) {
-    const otpRecord = await this.otpModel.findOne({ email: dto.email, type: OtpType.PASSWORD_RESET }).exec();
-    
+    const otpRecord = await this.otpModel
+      .findOne({ email: dto.email, type: OtpType.PASSWORD_RESET })
+      .exec();
+
     if (!otpRecord || otpRecord.expiresAt < new Date()) {
       throw new BadRequestException('Invalid or expired OTP');
     }
@@ -180,7 +208,7 @@ export class AuthService {
     }
 
     const isValid = await bcrypt.compare(dto.otp, otpRecord.otpHash);
-    
+
     if (!isValid) {
       otpRecord.attempts += 1;
       await otpRecord.save();
@@ -206,8 +234,10 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-    const sessions = await this.resetSessionModel.find({ used: false, expiresAt: { $gt: new Date() } }).exec();
-    
+    const sessions = await this.resetSessionModel
+      .find({ used: false, expiresAt: { $gt: new Date() } })
+      .exec();
+
     let validSession: any = null;
     for (const session of sessions) {
       const isValid = await bcrypt.compare(dto.token, session.tokenHash);
@@ -224,8 +254,10 @@ export class AuthService {
     const salt = await bcrypt.genSalt(10);
     const newPasswordHash = await bcrypt.hash(dto.newPassword, salt);
 
-    await this.usersService.update(validSession.userId, { passwordHash: newPasswordHash });
-    
+    await this.usersService.update(validSession.userId, {
+      passwordHash: newPasswordHash,
+    });
+
     validSession.used = true;
     await validSession.save();
 
@@ -238,7 +270,10 @@ export class AuthService {
     const user = await this.usersService.findById(userId);
     if (!user) throw new NotFoundException('User not found');
 
-    const isValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    const isValid = await bcrypt.compare(
+      dto.currentPassword,
+      user.passwordHash,
+    );
     if (!isValid) {
       throw new BadRequestException('Current password is incorrect');
     }

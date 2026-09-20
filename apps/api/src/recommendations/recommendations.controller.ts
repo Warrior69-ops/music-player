@@ -4,7 +4,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller(['recommendations', 'api/recommendations'])
 export class RecommendationsController {
-  constructor(private readonly recommendationsService: RecommendationsService) {}
+  constructor(
+    private readonly recommendationsService: RecommendationsService,
+  ) {}
 
   @Get('related')
   async getRelatedTracks(@Query('trackId') trackId: string) {

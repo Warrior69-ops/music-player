@@ -10,8 +10,9 @@ export class EmailService {
   private appName = 'Antigravity Music';
 
   constructor(private configService: ConfigService) {
-    this.fromAddress = this.configService.get<string>('SMTP_FROM') || 'noreply@example.com';
-    
+    this.fromAddress =
+      this.configService.get<string>('SMTP_FROM') || 'noreply@example.com';
+
     this.transporter = nodemailer.createTransport({
       host: this.configService.get<string>('SMTP_HOST'),
       port: this.configService.get<number>('SMTP_PORT'),
@@ -66,7 +67,7 @@ export class EmailService {
       <div class="otp-box">${otp}</div>
       <p>This code will expire in <strong>10 minutes</strong>.</p>
       <p class="warning">If you did not create an account, please ignore this email.</p>
-      `
+      `,
     );
 
     try {
@@ -90,7 +91,7 @@ export class EmailService {
       <div class="otp-box">${otp}</div>
       <p>This code will expire in <strong>10 minutes</strong>.</p>
       <p class="warning">If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>
-      `
+      `,
     );
 
     try {
@@ -102,7 +103,10 @@ export class EmailService {
       });
       this.logger.log(`Password reset email sent to ${email}`);
     } catch (error) {
-      this.logger.error(`Failed to send password reset email to ${email}`, error);
+      this.logger.error(
+        `Failed to send password reset email to ${email}`,
+        error,
+      );
     }
   }
 }

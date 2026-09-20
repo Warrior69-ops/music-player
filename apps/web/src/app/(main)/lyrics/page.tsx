@@ -11,7 +11,7 @@ import { LyricsView } from '@/components/ui/LyricsView';
 export default function LyricsPage() {
   const router = useRouter();
   const { currentTrack, isPlaying } = usePlayerStore();
-  const { currentTime, seek } = useAudioPlayer();
+  const { seek } = useAudioPlayer();
   const { data: lyricsData, isLoading } = useLyrics(
     currentTrack?.title,
     currentTrack?.artist,
@@ -123,9 +123,8 @@ export default function LyricsPage() {
         ) : lyricsData && lyricsData.lyrics.length > 0 ? (
           <LyricsView
             lyricsData={lyricsData}
-            currentTime={currentTime}
             isPlaying={isPlaying}
-            onSeek={handleSeek}
+            onSeek={seek}
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-3/4 text-center p-8">

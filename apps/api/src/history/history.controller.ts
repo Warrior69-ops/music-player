@@ -1,4 +1,11 @@
-import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { HistoryService } from './history.service';
 import { NormalizedTrack } from '../providers/interfaces/normalized-track.interface';
@@ -11,6 +18,12 @@ export class HistoryController {
   @Get()
   async getHistory(@Request() req) {
     const data = await this.historyService.getUserHistory(req.user._id);
+    return { success: true, data };
+  }
+
+  @Get('stats')
+  async getStats(@Request() req) {
+    const data = await this.historyService.getUserStats(req.user._id);
     return { success: true, data };
   }
 

@@ -22,10 +22,12 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
       isGlobal: true,
       envFilePath: '../../.env',
     }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100, // Limit each IP to 100 requests per minute max
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100, // Limit each IP to 100 requests per minute max
+      },
+    ]),
     DatabaseModule,
     UsersModule,
     EmailModule,
@@ -43,8 +45,8 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
     AppService,
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard
-    }
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

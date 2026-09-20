@@ -225,8 +225,8 @@ export default function ArtistPage() {
             {/* 3-Row Horizontal Flow Grid (Columns of 3 like YouTube Music) */}
             <div className="relative">
               <div
-                className="grid grid-rows-3 grid-flow-col auto-cols-[320px] md:auto-cols-[380px] gap-x-6 gap-y-2.5 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-purple-500/20 hover:scrollbar-thumb-purple-500/40"
-                style={{ scrollSnapType: 'x mandatory' }}
+                className="grid grid-rows-3 grid-flow-col auto-cols-[320px] md:auto-cols-[380px] gap-x-6 gap-y-2.5 overflow-x-auto pb-4 no-scrollbar scroll-smooth"
+                style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {topSongs.map((track, idx) => {
                   const isCurrent = getTrackId(currentTrack) === track.providerTrackId;

@@ -1,4 +1,9 @@
-import { Injectable, Logger, Inject, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  Inject,
+  BadRequestException,
+} from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { AudiusService } from '../providers/audius/audius.service';
@@ -23,14 +28,17 @@ export class MusicService {
 
   async searchTracks(query: string): Promise<NormalizedTrack[]> {
     const cacheKey = `search:tracks:${query.toLowerCase().trim()}`;
-    const cachedResults = await this.cacheManager.get<NormalizedTrack[]>(cacheKey);
-    
+    const cachedResults =
+      await this.cacheManager.get<NormalizedTrack[]>(cacheKey);
+
     if (cachedResults) {
       this.logger.log(`Cache hit for query: ${query}`);
       return cachedResults;
     }
 
-    this.logger.log(`Cache miss for query: ${query}. Fetching from providers...`);
+    this.logger.log(
+      `Cache miss for query: ${query}. Fetching from providers...`,
+    );
 
     const promises = [
       // this.audiusService.searchTracks(query),
@@ -39,9 +47,9 @@ export class MusicService {
     ];
 
     const results = await Promise.allSettled(promises);
-    
+
     const aggregatedTracks: NormalizedTrack[] = [];
-    
+
     for (const result of results) {
       if (result.status === 'fulfilled') {
         aggregatedTracks.push(...result.value);
@@ -50,7 +58,9 @@ export class MusicService {
       }
     }
     // Filter out tracks that cannot be streamed
-    const streamableTracks = aggregatedTracks.filter(track => track.isStreamable && track.audioUrl);
+    const streamableTracks = aggregatedTracks.filter(
+      (track) => track.isStreamable && track.audioUrl,
+    );
 
     // Cache the results for 1 hour
     await this.cacheManager.set(cacheKey, streamableTracks);
@@ -76,21 +86,30 @@ export class MusicService {
     return track;
   }
 
-  async getStreamUrl(provider: string, id: string, userId: string): Promise<string> {
+  async getStreamUrl(
+    provider: string,
+    id: string,
+    userId: string,
+  ): Promise<string> {
     const track = await this.getTrack(provider, id);
     const url = await this.getProviderService(provider).getStreamUrl(id);
     if (!url) throw new BadRequestException('Stream URL not found');
-    
+
     // Log to history asynchronously so we don't block playback
-    this.historyService.logPlay(userId, track).catch(err => {
+    this.historyService.logPlay(userId, track).catch((err) => {
       this.logger.error(`Failed to log play history: ${err.message}`);
     });
-    
+
     return url;
   }
 
   async getLyrics(trackName: string, artistName: string, duration?: number) {
-    return this.lrclibService.searchLyrics(trackName, artistName, undefined, duration);
+    return this.lrclibService.searchLyrics(
+      trackName,
+      artistName,
+      undefined,
+      duration,
+    );
   }
 
   async getArtist(id: string) {
@@ -103,7 +122,8 @@ export class MusicService {
 
     const { getArtistDetails } = await import('../scraper/youtubeScraper.js');
     const details = await getArtistDetails(id);
-    if (!details) throw new BadRequestException(`Artist not found for id: ${id}`);
+    if (!details)
+      throw new BadRequestException(`Artist not found for id: ${id}`);
 
     // Cache for 1 hour
     await this.cacheManager.set(cacheKey, details, 3600000);
@@ -120,14 +140,18 @@ export class MusicService {
 
     const { getAlbumDetails } = await import('../scraper/youtubeScraper.js');
     const details = await getAlbumDetails(id);
-    if (!details) throw new BadRequestException(`Album not found for id: ${id}`);
+    if (!details)
+      throw new BadRequestException(`Album not found for id: ${id}`);
 
     // Cache for 1 hour
     await this.cacheManager.set(cacheKey, details, 3600000);
     return details;
   }
 
-  async searchCategorized(query: string, type: 'all' | 'song' | 'album' | 'artist' | 'playlist' = 'all') {
+  async searchCategorized(
+    query: string,
+    type: 'all' | 'song' | 'album' | 'artist' | 'playlist' = 'all',
+  ) {
     const cacheKey = `search:${type}:${query.toLowerCase().trim()}`;
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) {
@@ -135,7 +159,8 @@ export class MusicService {
       return cached;
     }
 
-    const { searchCategorized: ytSearch } = await import('../scraper/youtubeScraper.js');
+    const { searchCategorized: ytSearch } =
+      await import('../scraper/youtubeScraper.js');
     const results = await ytSearch(query, type);
 
     // Cache for 30 minutes
@@ -143,4 +168,3 @@ export class MusicService {
     return results;
   }
 }
-

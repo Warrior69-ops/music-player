@@ -42,7 +42,12 @@ export class JamendoService implements MusicProvider {
     try {
       const { data } = await firstValueFrom(
         this.httpService.get(`${this.baseUrl}/tracks/`, {
-          params: { client_id: this.clientId, format: 'json', search: query, limit: 10 },
+          params: {
+            client_id: this.clientId,
+            format: 'json',
+            search: query,
+            limit: 10,
+          },
         }),
       );
       return data.results.map((track: any) => this.normalizeTrack(track));
@@ -60,23 +65,31 @@ export class JamendoService implements MusicProvider {
           params: { client_id: this.clientId, format: 'json', id },
         }),
       );
-      return data.results.length > 0 ? this.normalizeTrack(data.results[0]) : null;
+      return data.results.length > 0
+        ? this.normalizeTrack(data.results[0])
+        : null;
     } catch (error) {
       this.logger.error(`Jamendo getTrack failed for id: ${id}`, error);
       return null;
     }
   }
 
-  async getAlbum(id: string): Promise<any> { return null; }
-  async getArtist(id: string): Promise<any> { return null; }
-  
+  async getAlbum(id: string): Promise<any> {
+    return null;
+  }
+  async getArtist(id: string): Promise<any> {
+    return null;
+  }
+
   async getStreamUrl(id: string): Promise<string | null> {
     const track = await this.getTrack(id);
     return track ? track.audioUrl || null : null;
   }
 
-  async getArtwork(id: string): Promise<string | null> { return null; }
-  
+  async getArtwork(id: string): Promise<string | null> {
+    return null;
+  }
+
   getCapabilities() {
     return { canStream: true, hasLyrics: false, hasArtwork: true };
   }

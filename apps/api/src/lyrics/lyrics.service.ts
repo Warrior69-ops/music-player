@@ -10,7 +10,10 @@ export class LyricsService {
   private cleanMetadata(str: string): string {
     if (!str) return '';
     return str
-      .replace(/\s*[\(\[](official\s*(music\s*)?video|official\s*audio|video|audio|lyrics?|lyric\s*video|mv|visualizer|remastered|extended|4k|hd|hq)[\)\]]/gi, '')
+      .replace(
+        /\s*[\(\[](official\s*(music\s*)?video|official\s*audio|video|audio|lyrics?|lyric\s*video|mv|visualizer|remastered|extended|4k|hd|hq)[\)\]]/gi,
+        '',
+      )
       .replace(/\s*[\(\[](feat\.|ft\.|featuring)[^\)\]]*[\)\]]/gi, '')
       .replace(/\s+(feat\.|ft\.|featuring)\s+.+$/gi, '')
       .split('|')[0]
@@ -19,7 +22,11 @@ export class LyricsService {
       .trim();
   }
 
-  async getLyrics(title: string, artist?: string, duration?: number): Promise<LyricsPayload> {
+  async getLyrics(
+    title: string,
+    artist?: string,
+    duration?: number,
+  ): Promise<LyricsPayload> {
     const rawTitle = title || '';
     const rawArtist = artist || '';
     const cleanT = this.cleanMetadata(rawTitle);
@@ -36,11 +43,15 @@ export class LyricsService {
       const p2 = parts[1].trim();
       queryCandidates.push(`${p2} ${p1}`); // "Song Artist"
       queryCandidates.push(`${p1} ${p2}`); // "Artist Song"
-      queryCandidates.push(p2);           // "Song"
-      queryCandidates.push(p1);           // "Artist"
+      queryCandidates.push(p2); // "Song"
+      queryCandidates.push(p1); // "Artist"
     }
 
-    const isGenericArtist = !cleanA || ['youtube', 'unknown artist', 'various artists'].includes(cleanA.toLowerCase());
+    const isGenericArtist =
+      !cleanA ||
+      ['youtube', 'unknown artist', 'various artists'].includes(
+        cleanA.toLowerCase(),
+      );
 
     if (!isGenericArtist) {
       queryCandidates.push(`${cleanT} ${cleanA}`);
@@ -49,7 +60,9 @@ export class LyricsService {
       queryCandidates.push(cleanT);
     }
 
-    const uniqueQueries = Array.from(new Set(queryCandidates.filter((q) => q && q.length > 1)));
+    const uniqueQueries = Array.from(
+      new Set(queryCandidates.filter((q) => q && q.length > 1)),
+    );
 
     // 1. First attempt: Direct /api/get if clean title & artist are distinct
     if (cleanT && cleanA && !isGenericArtist) {
@@ -62,7 +75,8 @@ export class LyricsService {
           },
           timeout: 3000,
           headers: {
-            'Lrclib-Client': 'MusicPlayer (https://github.com/VED/music-player)',
+            'Lrclib-Client':
+              'MusicPlayer (https://github.com/VED/music-player)',
           },
         });
         if (response.data) {
@@ -81,7 +95,8 @@ export class LyricsService {
           params: { q },
           timeout: 3500,
           headers: {
-            'Lrclib-Client': 'MusicPlayer (https://github.com/VED/music-player)',
+            'Lrclib-Client':
+              'MusicPlayer (https://github.com/VED/music-player)',
           },
         });
 
@@ -102,8 +117,12 @@ export class LyricsService {
             }
 
             if (!isGenericArtist) {
-              const aArtistMatch = a.artistName?.toLowerCase().includes(cleanA.toLowerCase());
-              const bArtistMatch = b.artistName?.toLowerCase().includes(cleanA.toLowerCase());
+              const aArtistMatch = a.artistName
+                ?.toLowerCase()
+                .includes(cleanA.toLowerCase());
+              const bArtistMatch = b.artistName
+                ?.toLowerCase()
+                .includes(cleanA.toLowerCase());
               if (aArtistMatch && !bArtistMatch) return -1;
               if (!aArtistMatch && bArtistMatch) return 1;
             }
@@ -118,7 +137,9 @@ export class LyricsService {
           }
         }
       } catch (error: any) {
-        this.logger.debug(`LRCLIB search query failed for "${q}": ${error.message}`);
+        this.logger.debug(
+          `LRCLIB search query failed for "${q}": ${error.message}`,
+        );
       }
     }
 

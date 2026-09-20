@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -20,8 +25,9 @@ export interface CachedStream {
 }
 
 export const ANDROID_HEADERS: Record<string, string> = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
   'Accept-Language': 'en-us,en;q=0.5',
   'Sec-Fetch-Mode': 'navigate',
 };
@@ -36,7 +42,7 @@ type PendingRequest = {
 export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(YtDlpDaemonService.name);
   readonly cache = new Map<string, CachedStream>();
-  
+
   private proc: ChildProcess | null = null;
   private isReady = false;
   private pending = new Map<string, PendingRequest>();
@@ -61,8 +67,13 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
     if (this.destroyed || (this.proc && !this.proc.killed)) return;
 
     this.logger.log('Starting Python yt-dlp daemon process...');
-    const scriptPath = path.join(process.cwd(), 'src', 'music', 'ytdlp-daemon.py');
-    
+    const scriptPath = path.join(
+      process.cwd(),
+      'src',
+      'music',
+      'ytdlp-daemon.py',
+    );
+
     // Ensure the script exists
     if (!fs.existsSync(scriptPath)) {
       this.logger.error(`Daemon script not found at ${scriptPath}`);
@@ -110,18 +121,27 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
           if (urlOrError.startsWith('http')) {
             let expiresAt = Date.now() + 2 * 60 * 60 * 1000;
             try {
-              const expireParam = new URL(urlOrError).searchParams.get('expire');
-              if (expireParam) expiresAt = parseInt(expireParam, 10) * 1000 - 5 * 60 * 1000;
+              const expireParam = new URL(urlOrError).searchParams.get(
+                'expire',
+              );
+              if (expireParam)
+                expiresAt = parseInt(expireParam, 10) * 1000 - 5 * 60 * 1000;
             } catch {}
-            
-            const entry: CachedStream = { url: urlOrError, headers: { ...ANDROID_HEADERS }, expiresAt };
+
+            const entry: CachedStream = {
+              url: urlOrError,
+              headers: { ...ANDROID_HEADERS },
+              expiresAt,
+            };
             this.cache.set(id, entry);
             this.logger.log(`[YtDlpDaemon] Successfully extracted ${id}`);
             p.resolvers.forEach((resolve) => resolve(entry));
             this.bufferFirstChunk(entry).catch(() => {});
           } else {
-             this.logger.warn(`[YtDlpDaemon] Extraction failed for ${id}: ${urlOrError}`);
-             p.resolvers.forEach((resolve) => resolve(null));
+            this.logger.warn(
+              `[YtDlpDaemon] Extraction failed for ${id}: ${urlOrError}`,
+            );
+            p.resolvers.forEach((resolve) => resolve(null));
           }
         }
       }
@@ -133,13 +153,17 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.proc.on('exit', (code) => {
-      this.logger.warn(`[YtDlpDaemon] Process exited with code ${code}, restarting in 1s...`);
+      this.logger.warn(
+        `[YtDlpDaemon] Process exited with code ${code}, restarting in 1s...`,
+      );
       this.isReady = false;
-      
+
       // Reject all pending
       for (const [id, p] of this.pending) {
         clearTimeout(p.timer);
-        p.rejecters.forEach((reject) => reject(new Error(`yt-dlp daemon restarted (was processing ${id})`)));
+        p.rejecters.forEach((reject) =>
+          reject(new Error(`yt-dlp daemon restarted (was processing ${id})`)),
+        );
       }
       this.pending.clear();
       this.proc = null;
@@ -154,7 +178,9 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
     while (this.queue.length > 0 && this.isReady && this.proc) {
       const item = this.queue.shift()!;
       try {
-        this.proc.stdin!.write(`${item.priority}|https://www.youtube.com/watch?v=${item.id}\n`);
+        this.proc.stdin!.write(
+          `${item.priority}|https://www.youtube.com/watch?v=${item.id}\n`,
+        );
       } catch (e: any) {
         this.logger.error(`[YtDlpDaemon] stdin write failed: ${e.message}`);
       }
@@ -168,7 +194,7 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
       const upstreamRes = await fetch(entry.url, {
         headers: {
           ...entry.headers,
-          'Range': 'bytes=0-262143',
+          Range: 'bytes=0-262143',
         },
         // @ts-ignore
         dispatcher: keepAliveAgent,
@@ -179,7 +205,11 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
         entry.firstChunk = Buffer.from(arrayBuf);
         entry.firstChunkHeaders = {};
         upstreamRes.headers.forEach((val, key) => {
-          if (['content-type', 'content-range', 'accept-ranges'].includes(key.toLowerCase())) {
+          if (
+            ['content-type', 'content-range', 'accept-ranges'].includes(
+              key.toLowerCase(),
+            )
+          ) {
             entry.firstChunkHeaders![key.toLowerCase()] = val;
           }
         });
@@ -188,7 +218,9 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
           const match = contentRange.match(/\/(\d+)$/);
           if (match) entry.totalLength = parseInt(match[1], 10);
         }
-        this.logger.debug(`Buffered first ${entry.firstChunk.length} bytes for ${entry.url.slice(0, 30)}`);
+        this.logger.debug(
+          `Buffered first ${entry.firstChunk.length} bytes for ${entry.url.slice(0, 30)}`,
+        );
       }
     } catch (e: any) {
       this.logger.debug(`Failed to buffer first chunk: ${e.message}`);
@@ -206,7 +238,9 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
       return Promise.resolve(existing);
     }
 
-    this.logger.log(`[YtDlpDaemon] Prefetching (LOW priority) stream for: ${videoId}`);
+    this.logger.log(
+      `[YtDlpDaemon] Prefetching (LOW priority) stream for: ${videoId}`,
+    );
     return this.resolve(videoId, 'LOW')
       .then(async (entry) => {
         if (entry) await this.bufferFirstChunk(entry);
@@ -218,7 +252,9 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
   /** Background batch prefetch — warms up an array of tracks (e.g. all 15 artist top songs) */
   prefetchBatch(videoIds: string[]): void {
     if (!Array.isArray(videoIds) || videoIds.length === 0) return;
-    this.logger.log(`[YtDlpDaemon] Starting batch prefetch for ${videoIds.length} tracks`);
+    this.logger.log(
+      `[YtDlpDaemon] Starting batch prefetch for ${videoIds.length} tracks`,
+    );
     videoIds.forEach((id, idx) => {
       if (!id || this.cache.has(id)) return;
       setTimeout(() => {
@@ -228,7 +264,10 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Resolve a video ID to a cached stream entry with priority. Coalesces concurrent calls into a single request. */
-  async resolve(videoId: string, priority: 'HIGH' | 'LOW' = 'HIGH'): Promise<CachedStream | null> {
+  async resolve(
+    videoId: string,
+    priority: 'HIGH' | 'LOW' = 'HIGH',
+  ): Promise<CachedStream | null> {
     // 1. Cache hit (< 1ms)
     const cached = this.cache.get(videoId);
     if (cached) {
@@ -242,7 +281,9 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
       // If user directly clicked play, bump priority in Python daemon
       if (priority === 'HIGH' && this.isReady && this.proc) {
         try {
-          this.proc.stdin!.write(`HIGH|https://www.youtube.com/watch?v=${videoId}\n`);
+          this.proc.stdin!.write(
+            `HIGH|https://www.youtube.com/watch?v=${videoId}\n`,
+          );
         } catch {}
       }
       return new Promise<CachedStream | null>((res, rej) => {
@@ -261,7 +302,9 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
         const p = this.pending.get(videoId);
         this.pending.delete(videoId);
         if (p) {
-          p.rejecters.forEach((rej) => rej(new Error(`[YtDlpDaemon] Timeout (20s) for ${videoId}`)));
+          p.rejecters.forEach((rej) =>
+            rej(new Error(`[YtDlpDaemon] Timeout (20s) for ${videoId}`)),
+          );
         }
       }, 20000);
 
@@ -270,10 +313,12 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
         rejecters: [reject],
         timer,
       });
-      
+
       if (this.isReady && this.proc) {
         try {
-          this.proc.stdin!.write(`${priority}|https://www.youtube.com/watch?v=${videoId}\n`);
+          this.proc.stdin!.write(
+            `${priority}|https://www.youtube.com/watch?v=${videoId}\n`,
+          );
         } catch (e: any) {
           clearTimeout(timer);
           this.pending.delete(videoId);

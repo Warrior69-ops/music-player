@@ -1,6 +1,9 @@
 import { LyricLine, WordSync } from '../interfaces/lyrics.interface';
 
-export function parseLrc(rawLrc: string): { lyrics: LyricLine[]; isWordSynced: boolean } {
+export function parseLrc(rawLrc: string): {
+  lyrics: LyricLine[];
+  isWordSynced: boolean;
+} {
   if (!rawLrc) return { lyrics: [], isWordSynced: false };
 
   const lines = rawLrc.split('\n');
@@ -43,9 +46,13 @@ export function parseLrc(rawLrc: string): { lyrics: LyricLine[]; isWordSynced: b
       words[w].end = words[w + 1].start;
     }
 
-    const cleanText = hasWordSync && words.length > 0
-      ? words.map((w) => w.word).join('').trim()
-      : rawContent;
+    const cleanText =
+      hasWordSync && words.length > 0
+        ? words
+            .map((w) => w.word)
+            .join('')
+            .trim()
+        : rawContent;
 
     parsedLines.push({
       text: cleanText,
@@ -71,14 +78,21 @@ export function parseLrc(rawLrc: string): { lyrics: LyricLine[]; isWordSynced: b
       // Synthesize progressive word timings for Apple Music-style progressive glow
       const words = parsedLines[i].text.trim().split(/\s+/).filter(Boolean);
       if (words.length > 0) {
-        const lineDuration = Math.max(0.6, parsedLines[i].end - parsedLines[i].start);
-        const totalChars = words.reduce((acc, w) => acc + Math.max(1, w.length), 0);
+        const lineDuration = Math.max(
+          0.6,
+          parsedLines[i].end - parsedLines[i].start,
+        );
+        const totalChars = words.reduce(
+          (acc, w) => acc + Math.max(1, w.length),
+          0,
+        );
         let currStart = parsedLines[i].start;
         const synthWords: WordSync[] = [];
 
         for (let w = 0; w < words.length; w++) {
           const word = words[w];
-          const wordDur = lineDuration * (Math.max(1, word.length) / totalChars);
+          const wordDur =
+            lineDuration * (Math.max(1, word.length) / totalChars);
           synthWords.push({
             word,
             start: Number(currStart.toFixed(2)),

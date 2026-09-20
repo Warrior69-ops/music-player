@@ -47,6 +47,30 @@ export const useHistory = () => {
   });
 };
 
+export interface ListeningStats {
+  totalTracks: number;
+  totalPlays: number;
+  totalMinutes: number;
+  totalHours: string;
+  topTracks: (Track & { playCount?: number; minutesStreamed?: number })[];
+  topArtists: Array<{ name: string; plays: number; minutesStreamed?: number; thumbnail?: string }>;
+  persona: {
+    title: string;
+    description: string;
+  };
+}
+
+export const useListeningStats = () => {
+  return useQuery({
+    queryKey: ['listeningStats'],
+    queryFn: async () => {
+      const { data } = await api.get('/history/stats');
+      return data.data as ListeningStats;
+    },
+    staleTime: 60 * 1000,
+  });
+};
+
 // Favorites
 export const useFavorites = () => {
   return useQuery({
@@ -148,6 +172,7 @@ export const useLyrics = (trackName?: string, artistName?: string, duration?: nu
 export interface RecommendationShelf {
   id: string;
   title: string;
+  description?: string;
   type: 'track-list';
   items: Track[];
 }

@@ -12,9 +12,18 @@ export class LyricsController {
     @Query('duration') duration?: string,
   ) {
     if (!title || !title.trim()) {
-      return { trackId: '', isWordSynced: false, isLineSynced: false, lyrics: [] };
+      return {
+        trackId: '',
+        isWordSynced: false,
+        isLineSynced: false,
+        lyrics: [],
+      };
     }
     const durationNum = duration ? parseFloat(duration) : undefined;
-    return this.lyricsService.getLyrics(title.trim(), (artist || '').trim(), durationNum);
+    return this.lyricsService.getLyrics(
+      title.trim(),
+      (artist || '').trim(),
+      durationNum,
+    );
   }
 }

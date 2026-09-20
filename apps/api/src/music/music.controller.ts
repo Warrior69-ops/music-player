@@ -1,4 +1,13 @@
-import { Controller, Get, Query, Param, BadRequestException, UseGuards, Request as Req, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Param,
+  BadRequestException,
+  UseGuards,
+  Request as Req,
+  Res,
+} from '@nestjs/common';
 import { MusicService } from './music.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { Response, Request } from 'express';
@@ -16,11 +25,15 @@ export class MusicController {
 
   @Get('search')
   async search(@Query('q') query: string, @Query('type') type?: string) {
-    if (!query) throw new BadRequestException('Query parameter "q" is required');
+    if (!query)
+      throw new BadRequestException('Query parameter "q" is required');
 
     // If a specific category or 'all' is requested
     if (type && ['all', 'album', 'artist', 'playlist'].includes(type)) {
-      const data = await this.musicService.searchCategorized(query, type as any);
+      const data = await this.musicService.searchCategorized(
+        query,
+        type as any,
+      );
       return { success: true, data };
     }
 
@@ -62,13 +75,23 @@ export class MusicController {
 
   @Get('track/:provider/:id')
   async getTrack(@Param('provider') provider: string, @Param('id') id: string) {
-    return { success: true, data: await this.musicService.getTrack(provider, id) };
+    return {
+      success: true,
+      data: await this.musicService.getTrack(provider, id),
+    };
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('stream/:provider/:id')
-  async getStreamUrl(@Param('provider') provider: string, @Param('id') id: string, @Req() req: any) {
-    return { success: true, data: await this.musicService.getStreamUrl(provider, id, req.user._id) };
+  async getStreamUrl(
+    @Param('provider') provider: string,
+    @Param('id') id: string,
+    @Req() req: any,
+  ) {
+    return {
+      success: true,
+      data: await this.musicService.getStreamUrl(provider, id, req.user._id),
+    };
   }
 
   @Get('suggest')
@@ -80,20 +103,28 @@ export class MusicController {
       const sections = await yt.music.getSearchSuggestions(query);
 
       const textSuggestions: Array<{ type: 'query'; text: string }> = [];
-      const songSuggestions: Array<{ type: 'song'; id: string; title: string; artist: string }> = [];
+      const songSuggestions: Array<{
+        type: 'song';
+        id: string;
+        title: string;
+        artist: string;
+      }> = [];
 
       for (const section of sections) {
         if (!section.contents) continue;
         for (const item of section.contents) {
           const anyItem = item as any;
           if (item.type === 'SearchSuggestion') {
-            const text = anyItem.suggestion?.toString?.() || anyItem.query || '';
+            const text =
+              anyItem.suggestion?.toString?.() || anyItem.query || '';
             if (text) textSuggestions.push({ type: 'query', text });
           } else if (item.type === 'MusicResponsiveListItem') {
             const id = anyItem.id;
             const title = anyItem.title?.toString?.() || '';
-            const artist = anyItem.artists?.map((a: any) => a.name).join(', ') || '';
-            if (id && title) songSuggestions.push({ type: 'song', id, title, artist });
+            const artist =
+              anyItem.artists?.map((a: any) => a.name).join(', ') || '';
+            if (id && title)
+              songSuggestions.push({ type: 'song', id, title, artist });
           }
         }
       }
@@ -111,7 +142,11 @@ export class MusicController {
   async prefetchYoutubeStream(@Param('id') id: string) {
     if (!id) throw new BadRequestException('Missing YouTube ID');
     this.ytDlp.prefetch(id);
-    return { success: true, message: 'Prefetch initiated', cached: this.ytDlp.cache.has(id) };
+    return {
+      success: true,
+      message: 'Prefetch initiated',
+      cached: this.ytDlp.cache.has(id),
+    };
   }
 
   @Get('proxy/youtube/:id/status')
@@ -126,7 +161,11 @@ export class MusicController {
   }
 
   @Get('proxy/youtube/:id')
-  async proxyYoutubeStream(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+  async proxyYoutubeStream(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     if (!id) throw new BadRequestException('Missing YouTube ID');
 
     try {
@@ -138,12 +177,20 @@ export class MusicController {
 
       // ── Instant First-Chunk RAM Dispatch (< 15ms TTFB) ──────────────────────
       // If client requests from byte 0 (or standard initial start), and firstChunk is buffered in RAM:
-      if ((!rangeHeader || rangeHeader === 'bytes=0-' || rangeHeader.startsWith('bytes=0-')) && cached.firstChunk) {
+      if (
+        (!rangeHeader ||
+          rangeHeader === 'bytes=0-' ||
+          rangeHeader.startsWith('bytes=0-')) &&
+        cached.firstChunk
+      ) {
         const chunkSize = cached.firstChunk.length;
         const total = cached.totalLength || '';
 
         res.status(206);
-        res.setHeader('Content-Type', cached.firstChunkHeaders?.['content-type'] || 'audio/webm');
+        res.setHeader(
+          'Content-Type',
+          cached.firstChunkHeaders?.['content-type'] || 'audio/webm',
+        );
         res.setHeader('Accept-Ranges', 'bytes');
         if (total) {
           res.setHeader('Content-Range', `bytes 0-${total - 1}/${total}`);
@@ -158,7 +205,7 @@ export class MusicController {
         // Pipe the remainder of the stream starting from byte `chunkSize`
         const upstreamHeaders: Record<string, string> = {
           ...cached.headers,
-          'Range': `bytes=${chunkSize}-`,
+          Range: `bytes=${chunkSize}-`,
         };
 
         const abort = new AbortController();
@@ -174,7 +221,9 @@ export class MusicController {
         if (upstreamRes.body) {
           // @ts-ignore
           const readable = Readable.fromWeb(upstreamRes.body);
-          readable.on('error', () => { if (!res.headersSent) res.status(500).end(); });
+          readable.on('error', () => {
+            if (!res.headersSent) res.status(500).end();
+          });
           readable.pipe(res);
         } else {
           res.end();
@@ -189,7 +238,9 @@ export class MusicController {
       const abort = new AbortController();
       req.on('close', () => abort.abort());
 
-      console.log(`[StreamProxy] ${id} | Range: ${req.headers.range ?? 'none'}`);
+      console.log(
+        `[StreamProxy] ${id} | Range: ${req.headers.range ?? 'none'}`,
+      );
       const upstreamRes = await fetch(cached.url, {
         headers: upstreamHeaders,
         signal: abort.signal,
@@ -198,9 +249,12 @@ export class MusicController {
       });
 
       if (!upstreamRes.ok && upstreamRes.status !== 206) {
-        console.error(`[StreamProxy] Upstream ${upstreamRes.status} for ${id}`, {
-          urlDomain: new URL(cached.url).hostname,
-        });
+        console.error(
+          `[StreamProxy] Upstream ${upstreamRes.status} for ${id}`,
+          {
+            urlDomain: new URL(cached.url).hostname,
+          },
+        );
         // Evict stale entry and let the next request re-fetch
         this.ytDlp.cache.delete(id);
         throw new Error(`Upstream returned ${upstreamRes.status}`);
@@ -208,7 +262,14 @@ export class MusicController {
 
       res.status(upstreamRes.status);
       upstreamRes.headers.forEach((value, key) => {
-        if (['content-type', 'content-length', 'content-range', 'accept-ranges'].includes(key.toLowerCase())) {
+        if (
+          [
+            'content-type',
+            'content-length',
+            'content-range',
+            'accept-ranges',
+          ].includes(key.toLowerCase())
+        ) {
           res.setHeader(key, value);
         }
       });
@@ -218,7 +279,9 @@ export class MusicController {
       if (upstreamRes.body) {
         // @ts-ignore
         const readable = Readable.fromWeb(upstreamRes.body);
-        readable.on('error', () => { if (!res.headersSent) res.status(500).end(); });
+        readable.on('error', () => {
+          if (!res.headersSent) res.status(500).end();
+        });
         readable.pipe(res);
       } else {
         res.end();
@@ -237,8 +300,12 @@ export class MusicController {
     @Query('artist') artist: string,
     @Query('duration') duration: string,
   ) {
-    if (!track || !artist) throw new BadRequestException('track and artist are required');
+    if (!track || !artist)
+      throw new BadRequestException('track and artist are required');
     const durNum = duration ? parseInt(duration, 10) : undefined;
-    return { success: true, data: await this.musicService.getLyrics(track, artist, durNum) };
+    return {
+      success: true,
+      data: await this.musicService.getLyrics(track, artist, durNum),
+    };
   }
 }

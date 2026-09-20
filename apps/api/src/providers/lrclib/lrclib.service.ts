@@ -13,15 +13,27 @@ export class LrclibService {
     private httpService: HttpService,
   ) {}
 
-  async searchLyrics(trackName: string, artistName: string, albumName?: string, duration?: number): Promise<any> {
+  async searchLyrics(
+    trackName: string,
+    artistName: string,
+    albumName?: string,
+    duration?: number,
+  ): Promise<any> {
     try {
-      const userAgent = this.configService.get<string>('LRCLIB_USER_AGENT') || 'LRCGET v0.2.0 (https://github.com/tranxuanthang/lrcget)';
+      const userAgent =
+        this.configService.get<string>('LRCLIB_USER_AGENT') ||
+        'LRCGET v0.2.0 (https://github.com/tranxuanthang/lrcget)';
       const { data } = await firstValueFrom(
         this.httpService.get(`${this.baseUrl}/get`, {
-          params: { track_name: trackName, artist_name: artistName, album_name: albumName, duration },
+          params: {
+            track_name: trackName,
+            artist_name: artistName,
+            album_name: albumName,
+            duration,
+          },
           headers: {
-            'Lrclib-Client': userAgent
-          }
+            'Lrclib-Client': userAgent,
+          },
         }),
       );
       return data;

@@ -26,4 +26,5 @@ export class UserPreferences extends Document {
   preferredQuality: string;
 }
 
-export const UserPreferencesSchema = SchemaFactory.createForClass(UserPreferences);
+export const UserPreferencesSchema =
+  SchemaFactory.createForClass(UserPreferences);

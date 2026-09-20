@@ -31,6 +31,10 @@ export class RecentlyPlayed extends Document {
 
   @Prop({ default: 0 })
   playbackPosition: number;
+
+  @Prop({ default: 1 })
+  playCount: number;
 }
 
-export const RecentlyPlayedSchema = SchemaFactory.createForClass(RecentlyPlayed);
+export const RecentlyPlayedSchema =
+  SchemaFactory.createForClass(RecentlyPlayed);

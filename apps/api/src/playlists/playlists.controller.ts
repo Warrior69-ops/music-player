@@ -1,7 +1,21 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PlaylistsService } from './playlists.service';
-import { CreatePlaylistDto, UpdatePlaylistDto, AddTrackDto } from './dto/playlists.dto';
+import {
+  CreatePlaylistDto,
+  UpdatePlaylistDto,
+  AddTrackDto,
+} from './dto/playlists.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('playlists')
@@ -27,8 +41,16 @@ export class PlaylistsController {
   }
 
   @Put(':id')
-  async update(@Request() req, @Param('id') id: string, @Body() dto: UpdatePlaylistDto) {
-    const data = await this.playlistsService.updatePlaylist(id, req.user._id, dto);
+  async update(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() dto: UpdatePlaylistDto,
+  ) {
+    const data = await this.playlistsService.updatePlaylist(
+      id,
+      req.user._id,
+      dto,
+    );
     return { success: true, data };
   }
 
@@ -39,14 +61,30 @@ export class PlaylistsController {
   }
 
   @Post(':id/tracks')
-  async addTrack(@Request() req, @Param('id') id: string, @Body() dto: AddTrackDto) {
-    const data = await this.playlistsService.addTrackToPlaylist(id, req.user._id, dto);
+  async addTrack(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() dto: AddTrackDto,
+  ) {
+    const data = await this.playlistsService.addTrackToPlaylist(
+      id,
+      req.user._id,
+      dto,
+    );
     return { success: true, data };
   }
 
   @Delete(':id/tracks/:providerTrackId')
-  async removeTrack(@Request() req, @Param('id') id: string, @Param('providerTrackId') providerTrackId: string) {
-    const data = await this.playlistsService.removeTrackFromPlaylist(id, req.user._id, providerTrackId);
+  async removeTrack(
+    @Request() req,
+    @Param('id') id: string,
+    @Param('providerTrackId') providerTrackId: string,
+  ) {
+    const data = await this.playlistsService.removeTrackFromPlaylist(
+      id,
+      req.user._id,
+      providerTrackId,
+    );
     return { success: true, data };
   }
 }

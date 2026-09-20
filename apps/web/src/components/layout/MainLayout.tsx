@@ -9,6 +9,7 @@ import { QueueDrawer } from '../ui/QueueDrawer';
 import { useUIStore } from '@/store/useUIStore';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { useAutoplayObserver } from '@/hooks/useAutoplay';
+import { useMediaSession } from '@/hooks/useMediaSession';
 import api from '@/lib/api';
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,9 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
 
   // Run infinite autoplay observer in the background
   useAutoplayObserver();
+
+  // Connect Windows 10/11 physical media keys and lockscreen/taskbar flyout
+  useMediaSession();
 
   useEffect(() => {
     if (!currentTrack) {
@@ -32,33 +36,6 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Global Spacebar Play/Pause shortcut handler
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
-        const activeEl = document.activeElement;
-        const tagName = activeEl?.tagName.toLowerCase();
-        const isEditable =
-          tagName === 'input' ||
-          tagName === 'textarea' ||
-          (activeEl as HTMLElement)?.isContentEditable;
-
-        // Do not intercept if user is typing into an input field or textarea
-        if (isEditable) return;
-
-        // Prevent browser page scroll
-        e.preventDefault();
-
-        const { currentTrack, isPlaying, setIsPlaying } = usePlayerStore.getState();
-        if (currentTrack) {
-          setIsPlaying(!isPlaying);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
 
   return (
     <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">

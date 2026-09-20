@@ -11,7 +11,10 @@ import { UsersModule } from '../users/users.module';
 import { EmailModule } from '../email/email.module';
 
 import { EmailOTP, EmailOTPSchema } from './schemas/email-otp.schema';
-import { PasswordResetSession, PasswordResetSessionSchema } from './schemas/password-reset-session.schema';
+import {
+  PasswordResetSession,
+  PasswordResetSessionSchema,
+} from './schemas/password-reset-session.schema';
 import { UserSession, UserSessionSchema } from './schemas/user-session.schema';
 
 @Module({

@@ -88,11 +88,7 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({ album }) => {
           handleCardClick();
         }
       }}
-      style={{
-        WebkitBackdropFilter: 'blur(24px) saturate(135%)',
-        backdropFilter: 'blur(24px) saturate(135%)',
-      }}
-      className={`group relative aspect-square w-full rounded-2xl liquid-glass-card overflow-hidden transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none transform-gpu will-change-transform ${
+      className={`group relative aspect-square w-full rounded-2xl liquid-glass-card overflow-hidden transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none transform-gpu will-change-transform [content-visibility:auto] [contain-intrinsic-size:210px_210px] ${
         isThisAlbumPlaying
           ? 'border-purple-500/70 ring-1 ring-purple-500/50 shadow-[0_12px_35px_rgba(0,0,0,0.7),0_0_24px_rgba(139,92,246,0.35)]'
           : 'border-white/12 hover:border-purple-400/40 hover:shadow-[0_12px_30px_rgba(0,0,0,0.6),0_0_20px_rgba(139,92,246,0.25)]'
@@ -106,7 +102,7 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({ album }) => {
         </div>
       )}
 
-      {/* ── Square Cover Artwork Layer (Blurred in Default Glass State, Clear on Hover) ── */}
+      {/* ── Square Cover Artwork Layer (Clear by Default, Glass Blur on Hover) ── */}
       <div className="absolute inset-0 overflow-hidden bg-purple-950/40">
         {album.thumbnail ? (
           <Image
@@ -114,7 +110,7 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({ album }) => {
             alt={album.title}
             fill
             unoptimized
-            className="object-cover filter blur-[14px] saturate-[130%] scale-110 group-hover:filter-none group-hover:scale-100 transition-all duration-500 ease-out transform-gpu will-change-transform"
+            className="object-cover scale-100 group-hover:blur-[8px] group-hover:scale-105 group-hover:saturate-[130%] transition-all duration-500 ease-out transform-gpu will-change-transform"
             sizes="(max-width: 768px) 180px, 240px"
           />
         ) : (

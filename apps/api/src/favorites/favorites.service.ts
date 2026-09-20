@@ -16,7 +16,9 @@ export class FavoritesService implements OnModuleInit {
     try {
       // Safely drop obsolete index from previous schema version if it exists
       await this.favoriteModel.collection.dropIndex('userId_1_trackId_1');
-      this.logger.log('Dropped legacy userId_1_trackId_1 index from favorites collection');
+      this.logger.log(
+        'Dropped legacy userId_1_trackId_1 index from favorites collection',
+      );
     } catch (e: any) {
       // Ignore if index does not exist
       this.logger.debug(`Legacy index cleanup: ${e.message}`);
@@ -24,26 +26,30 @@ export class FavoritesService implements OnModuleInit {
   }
 
   async addFavorite(userId: string, dto: AddFavoriteDto): Promise<Favorite> {
-    return this.favoriteModel.findOneAndUpdate(
-      { userId, providerTrackId: dto.providerTrackId },
-      {
-        $set: {
-          userId,
-          provider: dto.provider,
-          providerTrackId: dto.providerTrackId,
-          title: dto.title,
-          artist: dto.artist,
-          albumArt: dto.albumArt,
-          duration: dto.duration,
-          addedAt: new Date(),
+    return this.favoriteModel
+      .findOneAndUpdate(
+        { userId, providerTrackId: dto.providerTrackId },
+        {
+          $set: {
+            userId,
+            provider: dto.provider,
+            providerTrackId: dto.providerTrackId,
+            title: dto.title,
+            artist: dto.artist,
+            albumArt: dto.albumArt,
+            duration: dto.duration,
+            addedAt: new Date(),
+          },
         },
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    ).exec() as any;
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      )
+      .exec();
   }
 
   async removeFavorite(userId: string, providerTrackId: string): Promise<void> {
-    await this.favoriteModel.findOneAndDelete({ userId, providerTrackId }).exec();
+    await this.favoriteModel
+      .findOneAndDelete({ userId, providerTrackId })
+      .exec();
   }
 
   async getUserFavorites(userId: string): Promise<Favorite[]> {

@@ -1,31 +1,35 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { LyricLine, WordSync, LyricsPayload } from '@/types/lyrics';
+import { useAudioStateStore } from '@/hooks/useAudioPlayer';
 
 interface LyricsViewProps {
   lyricsData: LyricsPayload;
-  currentTime: number;
   isPlaying?: boolean;
   onSeek?: (timestampInSeconds: number) => void;
 }
 
 export const LyricsView: React.FC<LyricsViewProps> = ({
   lyricsData,
-  currentTime,
   isPlaying = false,
   onSeek,
 }) => {
+  const currentTime = useAudioStateStore((s) => s.currentTime);
   const { lyrics, isWordSynced, isLineSynced } = lyricsData;
 
   // High-frequency interpolated clock for 60fps word-by-word progressive glow
   const [smoothTime, setSmoothTime] = useState<number>(currentTime);
   const currentTimeRef = useRef<number>(currentTime);
-  currentTimeRef.current = currentTime;
 
-  const [activeLineIdx, setActiveLineIdx] = useState<number>(-1);
+  useEffect(() => {
+    currentTimeRef.current = currentTime;
+    setSmoothTime(currentTime);
+  }, [currentTime]);
+
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastScrolledIdxRef = useRef<number>(-1);
 
   // Smooth animation frame loop
   useEffect(() => {
@@ -59,27 +63,24 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
     return () => cancelAnimationFrame(animId);
   }, [isPlaying]);
 
-  // Direct sync on seek or track jump
-  useEffect(() => {
-    setSmoothTime(currentTime);
-  }, [currentTime]);
-
-  // Sync active line and smoothly center in view
-  useEffect(() => {
-    if (!isLineSynced || !lyrics || lyrics.length === 0) return;
-
-    const idx = lyrics.findIndex(
+  // Derived active line index from current playback clock
+  const activeLineIdx = useMemo(() => {
+    if (!isLineSynced || !lyrics || lyrics.length === 0) return -1;
+    return lyrics.findIndex(
       (line) => smoothTime >= line.start && smoothTime < line.end
     );
+  }, [smoothTime, lyrics, isLineSynced]);
 
-    if (idx !== -1 && idx !== activeLineIdx) {
-      setActiveLineIdx(idx);
-      lineRefs.current[idx]?.scrollIntoView({
+  // Smoothly center active line in view when active line changes
+  useEffect(() => {
+    if (activeLineIdx !== -1 && activeLineIdx !== lastScrolledIdxRef.current) {
+      lastScrolledIdxRef.current = activeLineIdx;
+      lineRefs.current[activeLineIdx]?.scrollIntoView({
         behavior: 'smooth',
         block: 'center',
       });
     }
-  }, [smoothTime, lyrics, isLineSynced, activeLineIdx]);
+  }, [activeLineIdx]);
 
   if (!lyrics || lyrics.length === 0) {
     return (

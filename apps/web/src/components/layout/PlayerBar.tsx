@@ -21,15 +21,24 @@ import {
   Disc,
   ExternalLink,
   User,
+  Sliders,
+  Moon,
+  Waves,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useFavorites, useAddFavorite, useRemoveFavorite, useLyrics } from '@/hooks/queries';
 import { useUIStore } from '@/store/useUIStore';
+import { useEqualizerStore } from '@/store/useEqualizerStore';
+import { useSleepTimerStore } from '@/store/useSleepTimerStore';
 import { EqualizerBars } from '@/components/ui/EqualizerBars';
 import { ZigzagProgressBar } from '@/components/ui/ZigzagProgressBar';
+import { EqualizerModal } from '@/components/audio/EqualizerModal';
+import { SleepTimerModal } from '@/components/audio/SleepTimerModal';
+import { AudioVisualizerModal } from '@/components/visualizer/AudioVisualizerModal';
 import { toast } from 'sonner';
 
 export function PlayerBar() {
@@ -40,6 +49,23 @@ export function PlayerBar() {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const { toggleModal: toggleEqualizerModal, isEnabled: isEqEnabled } = useEqualizerStore();
+  const {
+    isActive: isSleepTimerActive,
+    remainingSeconds: sleepTimerSeconds,
+    toggleModal: toggleSleepTimerModal,
+  } = useSleepTimerStore();
+  const {
+    openVisualizer,
+    openPlaylistModal,
+    previousPath,
+    setPreviousPath,
+    isNowPlayingClosing,
+    setIsNowPlayingClosing,
+  } = useUIStore();
+
+  const shouldShowPlayerBar = !isNowPlaying || isNowPlayingClosing;
 
   const {
     currentTrack,
@@ -56,8 +82,7 @@ export function PlayerBar() {
     setCrossfadeDuration,
   } = usePlayerStore();
 
-  const { currentTime, duration, isLoading, togglePlay, seek } = useAudioPlayer();
-  const { openPlaylistModal, previousPath, setPreviousPath } = useUIStore();
+  const { isLoading, togglePlay, seek } = useAudioPlayer();
   const { data: favorites } = useFavorites();
   const addFavorite = useAddFavorite();
   const removeFavorite = useRemoveFavorite();
@@ -122,17 +147,21 @@ export function PlayerBar() {
     const nextDuration = durations[(currentIndex + 1) % durations.length];
     setCrossfadeDuration(nextDuration);
     if (nextDuration === 0) {
-      toast.info('Apple Music Crossfade disabled');
+      toast.info('Nocturne Osmosis disabled');
     } else {
-      toast.success(`Apple Music Crossfade set to ${nextDuration}s`);
+      toast.success(`Nocturne Osmosis set to ${nextDuration}s`);
     }
   };
 
   const toggleNowPlaying = () => {
     if (!currentTrack) return;
     if (isNowPlaying) {
+      setIsNowPlayingClosing(true);
       const dest = previousPath && previousPath !== '/now-playing' ? previousPath : '/';
-      router.push(dest);
+      setTimeout(() => {
+        router.push(dest);
+        setTimeout(() => setIsNowPlayingClosing(false), 150);
+      }, 320);
     } else {
       setPreviousPath(pathname);
       router.push('/now-playing');
@@ -149,8 +178,18 @@ export function PlayerBar() {
   };
 
   return (
-    <div className="relative px-3 pb-2.5 pt-0 z-50 select-none">
-      {/* ── Apple iOS Liquid Glass Ambient Backdrop (Directly behind the Music Bar) ── */}
+    <div className="relative z-50 select-none">
+      <AnimatePresence mode="wait">
+        {shouldShowPlayerBar && (
+          <motion.div
+            key="player-bar-bottom-dock"
+            initial={{ y: 90, opacity: 0, scale: 0.98 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 90, opacity: 0, scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 28, mass: 0.75 }}
+            className="relative px-3 pb-2.5 pt-0"
+          >
+            {/* ── Apple iOS Liquid Glass Ambient Backdrop (Directly behind the Music Bar) ── */}
       {currentTrack?.albumArt ? (
         <div className="absolute inset-x-3 bottom-2.5 top-0 rounded-2xl overflow-hidden pointer-events-none z-0">
           <div
@@ -403,8 +442,6 @@ export function PlayerBar() {
 
           {/* Aesthetic Zigzag Waveform Progress Bar */}
           <ZigzagProgressBar
-            currentTime={currentTime}
-            duration={duration}
             onSeek={seek}
             isPlaying={isPlaying}
           />
@@ -412,7 +449,50 @@ export function PlayerBar() {
 
         {/* ── Right Section: Crossfade Toggle & Utilities ────────────── */}
         <div className="w-[30%] flex items-center justify-end gap-2.5">
-          {/* Apple Music Seamless Crossfade Toggle Pill */}
+          {/* Audio Visualizer Button */}
+          <button
+            onClick={openVisualizer}
+            disabled={!currentTrack}
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white transition-all hover:scale-110 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Real-time Audio Visualizer"
+          >
+            <Waves className="w-4.5 h-4.5" />
+          </button>
+
+          {/* 10-Band Graphic Equalizer Button */}
+          <button
+            onClick={toggleEqualizerModal}
+            className={`p-1.5 rounded-lg transition-all hover:scale-110 active:scale-95 ${
+              isEqEnabled
+                ? 'text-primary hover:text-purple-300'
+                : 'text-zinc-500 hover:text-white'
+            }`}
+            title="10-Band Graphic Equalizer & Bass Booster"
+          >
+            <Sliders className="w-4.5 h-4.5" />
+          </button>
+
+          {/* Sleep Timer Button */}
+          {isSleepTimerActive ? (
+            <button
+              onClick={toggleSleepTimerModal}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.25)] hover:scale-105 active:scale-95 transition-all"
+              title={`Sleep Timer: ${Math.floor(sleepTimerSeconds / 60)}:${(sleepTimerSeconds % 60).toString().padStart(2, '0')} remaining`}
+            >
+              <Moon className="w-3.5 h-3.5" />
+              <span>{Math.floor(sleepTimerSeconds / 60)}:{(sleepTimerSeconds % 60).toString().padStart(2, '0')}</span>
+            </button>
+          ) : (
+            <button
+              onClick={toggleSleepTimerModal}
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-white transition-all hover:scale-110 active:scale-95"
+              title="Sleep Timer with smooth fade-out"
+            >
+              <Moon className="w-4.5 h-4.5" />
+            </button>
+          )}
+
+          {/* Nocturne Osmosis Seamless Crossfade Toggle Pill */}
           <button
             onClick={cycleCrossfade}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all duration-200 hover:scale-105 active:scale-95 ${
@@ -420,7 +500,7 @@ export function PlayerBar() {
                 ? 'bg-purple-500/15 text-purple-200 border-purple-500/30'
                 : 'bg-white/5 text-zinc-400 border-white/10 hover:text-white'
             }`}
-            title={`Apple Music Crossfade: ${
+            title={`Nocturne Osmosis: ${
               crossfadeDuration === 0 ? 'Off (Click to cycle)' : `${crossfadeDuration}s overlap (Click to change)`
             }`}
           >
@@ -534,6 +614,14 @@ export function PlayerBar() {
           </button>
         </div>
       </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Feature Modals */}
+      <EqualizerModal />
+      <SleepTimerModal />
+      <AudioVisualizerModal />
     </div>
   );
 }

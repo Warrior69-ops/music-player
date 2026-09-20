@@ -1,4 +1,11 @@
-import { Controller, Patch, Body, UseGuards, Request, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Patch,
+  Body,
+  UseGuards,
+  Request,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from './users.service';
 import { UpdatePreferencesDto } from './dto/preferences.dto';
@@ -9,7 +16,10 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Patch('preferences')
-  async updatePreferences(@Request() req: any, @Body() dto: UpdatePreferencesDto) {
+  async updatePreferences(
+    @Request() req: any,
+    @Body() dto: UpdatePreferencesDto,
+  ) {
     const userId = req.user._id || req.user.id;
     const updatedUser = await this.usersService.updateMusicPreferences(userId, {
       languages: dto.languages,

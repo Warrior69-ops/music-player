@@ -223,7 +223,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   nextTrack: () => {
-    const { queue, currentIndex } = get();
+    const { queue, currentIndex, isAutoplayEnabled, currentTrack, appendAutoplayTracks } = get();
     if (currentIndex < queue.length - 1) {
       const nextIndex = currentIndex + 1;
       const nextTrack = queue[nextIndex];
@@ -232,6 +232,29 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         currentTrack: nextTrack,
         isPlaying: true,
       });
+    } else if (isAutoplayEnabled && currentTrack) {
+      // Urgent fallback: queue reached end with autoplay active, fetch related songs immediately
+      const trackId = getTrackId(currentTrack);
+      if (trackId) {
+        import('@/lib/api').then(({ default: api }) => {
+          api.get(`/recommendations/related?trackId=${encodeURIComponent(trackId)}`)
+            .then((res) => {
+              if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+                appendAutoplayTracks(res.data);
+                const updatedQueue = get().queue;
+                const nextIdx = currentIndex + 1;
+                if (updatedQueue[nextIdx]) {
+                  set({
+                    currentIndex: nextIdx,
+                    currentTrack: updatedQueue[nextIdx],
+                    isPlaying: true,
+                  });
+                }
+              }
+            })
+            .catch(() => {});
+        });
+      }
     }
   },
 
@@ -375,7 +398,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setVolume: (volume: number) => set({ volume }),
   setCrossfadeDuration: (seconds: number) => set({ crossfadeDuration: Math.max(0, seconds) }),
   toggleAutoplay: () =>
-    set((state) => ({ isAutoplayEnabled: !state.isAutoplayEnabled })),
+    set((state) => {
+      const isNowEnabled = !state.isAutoplayEnabled;
+      if (!isNowEnabled) {
+        // Purge upcoming autoplay tracks if toggled off
+        const newQueue = state.queue.filter((t, idx) => idx <= state.currentIndex || !t.isAutoplay);
+        const newOriginalQueue = state.originalQueue.filter((t) => {
+          if (getTrackId(t) === getTrackId(state.currentTrack)) return true;
+          return !t.isAutoplay;
+        });
+
+        return { 
+          isAutoplayEnabled: isNowEnabled,
+          queue: newQueue,
+          originalQueue: newOriginalQueue
+        };
+      }
+      return { isAutoplayEnabled: isNowEnabled };
+    }),
   setIsQueueOpen: (open: boolean) => set({ isQueueOpen: open }),
   toggleQueue: () => set((state) => ({ isQueueOpen: !state.isQueueOpen })),
   setIsInstantLaunch: (isInstant: boolean) => set({ isInstantLaunch: isInstant }),
@@ -386,3 +426,58 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         : [...state.warmedTrackIds, id],
     })),
 }));
+
+// Background Autoplay Pre-fetcher
+// Ensures that if Autoplay is enabled, we automatically populate upcoming Autoplay tracks immediately,
+// rather than waiting for the queue to completely finish.
+let isFetchingAutoplay = false;
+let lastFetchedTrackId: string | null = null;
+let prevAutoplayEnabled = true;
+
+usePlayerStore.subscribe((state) => {
+  // If toggled on just now, reset the tracker so it can re-attempt!
+  if (state.isAutoplayEnabled && !prevAutoplayEnabled) {
+    lastFetchedTrackId = null;
+  }
+  prevAutoplayEnabled = state.isAutoplayEnabled;
+
+  if (state.isAutoplayEnabled && state.queue.length > 0 && !isFetchingAutoplay) {
+    const upcomingAutoplayCount = state.queue
+      .slice(state.currentIndex + 1)
+      .filter((t) => t.isAutoplay).length;
+
+    const lastTrack = state.queue[state.queue.length - 1];
+    const trackId = getTrackId(lastTrack);
+    
+    // Fetch if we have NO upcoming autoplay tracks, AND we haven't already fetched for this tail track
+    if (upcomingAutoplayCount === 0 && trackId && trackId !== lastFetchedTrackId) {
+      isFetchingAutoplay = true;
+      lastFetchedTrackId = trackId; // Mark as attempted
+      
+      import('@/lib/api').then(({ default: api }) => {
+        api.get(`/recommendations/related?trackId=${encodeURIComponent(trackId)}`)
+          .then((res) => {
+            if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+              usePlayerStore.getState().appendAutoplayTracks(res.data);
+            } else {
+              throw new Error('Empty related tracks');
+            }
+          })
+          .catch(() => {
+            // Fallback: search for artist radio to continue autoplay
+            const query = lastTrack.artist ? `${lastTrack.artist} radio` : lastTrack.title;
+            return api.get(`/music/search?q=${encodeURIComponent(query)}`)
+              .then((fallbackRes) => {
+                if (fallbackRes.data?.data && Array.isArray(fallbackRes.data.data)) {
+                  usePlayerStore.getState().appendAutoplayTracks(fallbackRes.data.data);
+                }
+              });
+          })
+          .catch(() => {})
+          .finally(() => {
+            isFetchingAutoplay = false;
+          });
+      });
+    }
+  }
+});

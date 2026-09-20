@@ -17,4 +17,5 @@ export class PasswordResetSession extends Document {
   used: boolean;
 }
 
-export const PasswordResetSessionSchema = SchemaFactory.createForClass(PasswordResetSession);
+export const PasswordResetSessionSchema =
+  SchemaFactory.createForClass(PasswordResetSession);

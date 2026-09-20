@@ -30,15 +30,18 @@ export function useAutoplayObserver() {
 
       const fetchRelated = async () => {
         isFetchingRef.current = true;
-        lastFetchedTrackIdRef.current = anchorId;
 
         try {
           const res = await api.get(`/recommendations/related?trackId=${encodeURIComponent(anchorId)}`);
           if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+            lastFetchedTrackIdRef.current = anchorId;
             appendAutoplayTracks(res.data);
+          } else {
+            lastFetchedTrackIdRef.current = null;
           }
         } catch (error: any) {
           console.error('Failed to fetch autoplay recommendations:', error?.message || error);
+          lastFetchedTrackIdRef.current = null;
         } finally {
           isFetchingRef.current = false;
         }

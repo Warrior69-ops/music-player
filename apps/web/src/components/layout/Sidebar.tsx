@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Search, Library, ListMusic, Heart, Clock, LogOut } from 'lucide-react';
+import { Home, Search, Library, ListMusic, Heart, Clock, LogOut, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
 import { motion } from 'framer-motion';
@@ -50,6 +50,7 @@ export function Sidebar() {
           <NavLink href="/library" icon={Library} isActive={pathname.startsWith('/library')}>Playlists</NavLink>
           <NavLink href="/favorites" icon={Heart} isActive={pathname.startsWith('/favorites')}>Favorites</NavLink>
           <NavLink href="/history" icon={Clock} isActive={pathname.startsWith('/history')}>Recently Played</NavLink>
+          <NavLink href="/stats" icon={BarChart3} isActive={pathname.startsWith('/stats')}>Stats & Wrapped</NavLink>
         </div>
       </nav>
 

@@ -16,7 +16,9 @@ export class AudiusService implements MusicProvider {
   ) {}
 
   private get headers() {
-    const bearer = this.configService.get<string>('AUDIUS_BEARER_TOKEN') || this.configService.get<string>('AUDIUS_API_KEY');
+    const bearer =
+      this.configService.get<string>('AUDIUS_BEARER_TOKEN') ||
+      this.configService.get<string>('AUDIUS_API_KEY');
     return {
       Accept: 'application/json',
       ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
@@ -70,15 +72,21 @@ export class AudiusService implements MusicProvider {
     }
   }
 
-  async getAlbum(id: string): Promise<any> { return null; }
-  async getArtist(id: string): Promise<any> { return null; }
-  
+  async getAlbum(id: string): Promise<any> {
+    return null;
+  }
+  async getArtist(id: string): Promise<any> {
+    return null;
+  }
+
   async getStreamUrl(id: string): Promise<string | null> {
     return `${this.baseUrl}/tracks/${id}/stream?app_name=AntigravityMusic`;
   }
 
-  async getArtwork(id: string): Promise<string | null> { return null; }
-  
+  async getArtwork(id: string): Promise<string | null> {
+    return null;
+  }
+
   getCapabilities() {
     return { canStream: true, hasLyrics: false, hasArtwork: true };
   }

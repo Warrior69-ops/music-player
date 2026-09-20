@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Play,
   Pause,
+  SkipBack,
+  SkipForward,
   Shuffle,
   Infinity as InfinityIcon,
   Heart,
@@ -19,19 +21,25 @@ import {
   Disc3,
   Share2,
   Check,
-  ListMusic,
-  ListPlus,
   Volume2,
   VolumeX,
+  Waves,
+  Sliders,
+  Moon,
+  ChevronDown,
 } from 'lucide-react';
-import { usePlayerStore, getTrackId, Track } from '@/store/usePlayerStore';
+import { usePlayerStore, getTrackId } from '@/store/usePlayerStore';
 import { useUIStore } from '@/store/useUIStore';
+import { useEqualizerStore } from '@/store/useEqualizerStore';
+import { useSleepTimerStore } from '@/store/useSleepTimerStore';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useFavorites, useAddFavorite, useRemoveFavorite, useLyrics } from '@/hooks/queries';
+import { AudioVisualizerCanvas } from '@/components/visualizer/AudioVisualizerCanvas';
 import { EqualizerBars } from '@/components/ui/EqualizerBars';
 import { LyricsView } from '@/components/ui/LyricsView';
+import { NowPlayingProgressBar } from '@/components/ui/NowPlayingProgressBar';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 function formatDuration(seconds?: number): string {
   if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
@@ -44,6 +52,8 @@ export default function NowPlayingPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'upnext' | 'lyrics' | 'related'>('upnext');
   const [copied, setCopied] = useState(false);
+  const [isHoveringSeek, setIsHoveringSeek] = useState(false);
+  const [hoverSeekPercent, setHoverSeekPercent] = useState<number | null>(null);
 
   const {
     currentTrack,
@@ -53,16 +63,36 @@ export default function NowPlayingPage() {
     isShuffle,
     isAutoplayEnabled,
     queueSource,
+    volume,
+    setVolume,
     toggleShuffle,
     toggleAutoplay,
     jumpToIndex,
     removeFromQueue,
     clearQueue,
     playNext,
+    nextTrack,
+    playPrevious,
+    crossfadeDuration,
+    setCrossfadeDuration,
   } = usePlayerStore();
 
-  const { openPlaylistModal } = useUIStore();
-  const { currentTime, duration, togglePlay, seek } = useAudioPlayer();
+  const {
+    openPlaylistModal,
+    openVisualizer,
+    previousPath,
+    isNowPlayingClosing,
+    setIsNowPlayingClosing,
+  } = useUIStore();
+  const [isExiting, setIsExiting] = useState(false);
+  const { toggleModal: toggleEqualizerModal, isEnabled: isEqEnabled } = useEqualizerStore();
+  const {
+    isActive: isSleepTimerActive,
+    remainingSeconds: sleepTimerSeconds,
+    toggleModal: toggleSleepTimerModal,
+  } = useSleepTimerStore();
+
+  const { isLoading, togglePlay, seek } = useAudioPlayer();
   const { data: favorites } = useFavorites();
   const addFavorite = useAddFavorite();
   const removeFavorite = useRemoveFavorite();
@@ -105,6 +135,48 @@ export default function NowPlayingPage() {
       toast.success('Now playing link copied to clipboard');
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const [prevVolume, setPrevVolume] = useState(volume || 1);
+  const toggleMute = () => {
+    if (volume > 0) {
+      setPrevVolume(volume);
+      setVolume(0);
+    } else {
+      setVolume(prevVolume || 0.8);
+    }
+  };
+
+  const handleVolumeClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const bounds = e.currentTarget.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (e.clientX - bounds.left) / bounds.width));
+    setVolume(percent);
+  };
+
+  const cycleCrossfade = () => {
+    const durations = [0, 3, 5, 7, 10];
+    const currentIndex = durations.indexOf(crossfadeDuration);
+    const nextDuration = durations[(currentIndex + 1) % durations.length];
+    setCrossfadeDuration(nextDuration);
+    if (nextDuration === 0) {
+      toast.info('Nocturne Osmosis disabled');
+    } else {
+      toast.success(`Nocturne Osmosis set to ${nextDuration}s`);
+    }
+  };
+
+  const handleExitNowPlaying = () => {
+    if (isExiting) return;
+    setIsExiting(true);
+    setIsNowPlayingClosing(true);
+    const dest = previousPath && previousPath !== '/now-playing' ? previousPath : '/';
+    setTimeout(() => {
+      router.push(dest);
+      setTimeout(() => {
+        setIsNowPlayingClosing(false);
+        setIsExiting(false);
+      }, 150);
+    }, 320);
   };
 
   // Segregate upcoming queue into User Queue (Up Next) and Autoplay
@@ -154,50 +226,120 @@ export default function NowPlayingPage() {
   }
 
   return (
-    <div className="relative isolate h-[calc(100vh-8.5rem)] flex flex-col lg:flex-row gap-6 lg:gap-10 p-4 md:p-8 lg:p-10 overflow-hidden select-none">
-      {/* ── Immersive Ambient Blurred Album Art Canvas (Shines vibrantly through Liquid Glass) ── */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 select-none">
-        {currentTrack.albumArt && (
-          <div
-            className="absolute -inset-28 bg-cover bg-center filter blur-[80px] opacity-70 scale-135 transition-all duration-1000 transform-gpu will-change-transform"
-            style={{ backgroundImage: `url(${currentTrack.albumArt})` }}
-          />
-        )}
-        {/* Vibrant fluid gradient aura orbs for optical saturation */}
-        <div className="absolute top-0 -left-10 w-[550px] h-[550px] rounded-full bg-purple-600/40 blur-[110px] animate-pulse" />
-        <div className="absolute bottom-0 right-10 w-[600px] h-[600px] rounded-full bg-violet-600/35 blur-[120px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-fuchsia-600/25 blur-[130px]" />
-        <div className="absolute inset-0 bg-black/25" />
-      </div>
-
-      {/* ── Left Pane: Grand Artwork & Track Metadata ───────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center min-w-0 py-2 relative z-10">
-        {/* Ambient Glow Backdrop */}
-        <div className="absolute w-[360px] md:w-[480px] aspect-square rounded-full bg-purple-600/30 blur-[100px] pointer-events-none" />
-
-        {/* Hero Artwork with subtle vinyl reflection */}
-        <div className="relative w-full max-w-[340px] sm:max-w-[400px] md:max-w-[430px] aspect-square rounded-3xl overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.85)] border border-white/20 group">
+    <motion.div
+      initial={{ y: '100%', opacity: 0 }}
+      animate={isExiting ? { y: '100%', opacity: 0, scale: 0.96 } : { y: 0, opacity: 1, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 320, damping: 28, mass: 0.75 }}
+      className="relative isolate min-h-[calc(100vh-5rem)] h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-6 lg:gap-8 p-4 md:p-6 lg:p-8 overflow-hidden select-none"
+    >
+      {/* ── Dynamic Cover Art Color Transition Background (From MiniPlayer) ── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10 select-none">
+        <AnimatePresence mode="popLayout">
           {currentTrack.albumArt ? (
-            <img
-              src={currentTrack.albumArt}
-              alt={currentTrack.title}
-              className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            <motion.div
+              key={getTrackId(currentTrack) || currentTrack.title}
+              initial={{ opacity: 0, scale: 1.25 }}
+              animate={{ opacity: 0.85, scale: 1.45 }}
+              exit={{ opacity: 0, scale: 1.1 }}
+              transition={{ duration: 0.85, ease: 'easeInOut' }}
+              className="absolute -inset-24 bg-cover bg-center filter blur-[65px] saturate-[190%]"
+              style={{ backgroundImage: `url(${currentTrack.albumArt})` }}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-950 to-zinc-900">
-              <Music2 className="w-20 h-20 text-white/20" />
-            </div>
+            <motion.div
+              key="fallback-ambient"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-gradient-to-br from-purple-950/70 via-zinc-950/90 to-black"
+            />
           )}
+        </AnimatePresence>
 
-          {/* Ambient Inner Glass Rim */}
-          <div className="absolute inset-0 ring-1 ring-inset ring-white/10 pointer-events-none rounded-3xl" />
-        </div>
+        {/* Deep Dark Vignette for contrast and readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-[#0c071a]/70 to-[#07040d]/90" />
 
-        {/* Track Title, Artist, & Album */}
-        <div className="w-full max-w-[430px] flex flex-col items-center text-center mt-6">
+        {/* Vibrant fluid gradient aura orbs for optical saturation */}
+        <div className="absolute top-0 -left-10 w-[550px] h-[550px] rounded-full bg-purple-600/30 blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 right-10 w-[600px] h-[600px] rounded-full bg-violet-600/25 blur-[130px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-fuchsia-600/20 blur-[140px] pointer-events-none" />
+      </div>
+
+      {/* ── Left Half: Cosmic Pulse Centerpiece & Living Player Controls ── */}
+      <div className="flex-1 flex flex-col justify-between min-w-0 py-2 relative z-10 overflow-y-auto scrollbar-none pr-1">
+        {/* 1. Top Status Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={isExiting ? { opacity: 0, y: 30 } : { opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+          className="flex items-center justify-between w-full max-w-[500px] mx-auto px-2"
+        >
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold uppercase tracking-wider text-purple-200 backdrop-blur-md shadow-sm">
+            <EqualizerBars isPlaying={isPlaying} size="xs" />
+            <span>Now Playing</span>
+          </div>
+
+          <div className="text-xs text-zinc-400 font-medium truncate max-w-[200px]" title={playingFromTitle}>
+            {playingFromTitle}
+          </div>
+        </motion.div>
+
+        {/* 2. Centerpiece: Cosmic Pulse Audio Visualizer + Rotating Vinyl Disc */}
+        <motion.div
+          initial={{ opacity: 0, y: 80, scale: 0.75 }}
+          animate={isExiting ? { opacity: 0, y: 100, scale: 0.75 } : { opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 320, damping: 22, mass: 0.8, delay: isExiting ? 0 : 0.05 }}
+          className="relative w-full max-w-[460px] h-48 sm:h-56 mx-auto flex items-center justify-center my-1 group"
+        >
+          {/* Radial Audio Visualizer Canvas (Cosmic Pulse) */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none scale-105">
+            <AudioVisualizerCanvas
+              mode="radial"
+              isPlaying={isPlaying}
+              className="w-full h-full"
+            />
+          </div>
+
+          {/* Central Rotating Vinyl Album Cover Disc */}
+          <div className="relative z-20 w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden border-2 border-white/30 shadow-[0_0_45px_rgba(168,85,247,0.6)] group-hover:scale-105 transition-transform duration-500">
+            <div
+              className={`w-full h-full rounded-full overflow-hidden ${
+                isPlaying ? 'animate-spin-slow' : ''
+              }`}
+            >
+              {currentTrack.albumArt ? (
+                <img
+                  src={currentTrack.albumArt}
+                  alt={currentTrack.title}
+                  className="w-full h-full object-cover select-none pointer-events-none"
+                />
+              ) : (
+                <div className="w-full h-full bg-purple-950 flex items-center justify-center">
+                  <Music2 className="w-12 h-12 text-white/40" />
+                </div>
+              )}
+            </div>
+
+            {/* Vinyl Record Grooves Overlay */}
+            <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,transparent_35%,rgba(0,0,0,0.4)_70%,rgba(0,0,0,0.7)_100%)] pointer-events-none ring-1 ring-inset ring-white/20" />
+
+            {/* Vinyl Spindle Center Hole */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-black/90 border border-white/40 shadow-inner flex items-center justify-center">
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-400/60" />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* 3. Track Details & Action Pills */}
+        <motion.div
+          initial={{ opacity: 0, y: 55, scale: 0.9 }}
+          animate={isExiting ? { opacity: 0, y: 80, scale: 0.85 } : { opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 360, damping: 24, delay: isExiting ? 0 : 0.12 }}
+          className="w-full max-w-[500px] mx-auto flex flex-col items-center text-center mt-1"
+        >
           <div className="flex items-center gap-2 max-w-full">
             <h1
-              className="text-2xl sm:text-3xl font-black text-white tracking-tight truncate hover:text-purple-200 transition-colors"
+              className="text-2xl sm:text-3xl font-black text-white tracking-tight truncate hover:text-purple-200 transition-colors drop-shadow-md"
               title={currentTrack.title}
             >
               {currentTrack.title}
@@ -209,11 +351,11 @@ export default function NowPlayingPage() {
             )}
           </div>
 
-          <div className="text-sm md:text-base text-zinc-400 mt-1 truncate max-w-full">
+          <div className="text-sm sm:text-base text-zinc-300 mt-1 truncate max-w-full">
             {currentTrack.artist ? (
               <Link
                 href={`/artist/${encodeURIComponent((currentTrack as any).artistId || currentTrack.artist)}`}
-                className="hover:text-purple-300 hover:underline transition-colors"
+                className="hover:text-purple-300 hover:underline transition-colors font-medium"
               >
                 {currentTrack.artist}
               </Link>
@@ -221,7 +363,7 @@ export default function NowPlayingPage() {
               'Unknown Artist'
             )}
             {currentTrack.album && (
-              <span className="text-zinc-500">
+              <span className="text-zinc-500 font-normal">
                 {' '}
                 •{' '}
                 {currentTrack.albumId ? (
@@ -238,12 +380,13 @@ export default function NowPlayingPage() {
             )}
           </div>
 
-          {/* Quick Action Pills Row with Liquid Glass finish */}
-          <div className="flex items-center gap-3 mt-4">
-            {/* Favorite */}
-            <button
+          {/* Action Pills Row */}
+          <div className="flex items-center gap-3 mt-3">
+            <motion.button
+              whileHover={{ scale: 1.15, y: -2 }}
+              whileTap={{ scale: 0.9 }}
               onClick={handleFavoriteToggle}
-              className={`p-2.5 rounded-full border transition-all duration-200 hover:scale-110 active:scale-95 ${
+              className={`p-2 rounded-full border transition-all duration-200 ${
                 isFavorite
                   ? 'bg-primary/25 border-primary/50 text-primary shadow-[0_0_15px_rgba(168,85,247,0.35)]'
                   : 'liquid-glass-pill text-zinc-400 hover:text-white'
@@ -251,45 +394,218 @@ export default function NowPlayingPage() {
               title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
             >
               <Heart className={`w-4 h-4 ${isFavorite ? 'fill-primary' : ''}`} />
-            </button>
+            </motion.button>
 
-            {/* Add to Playlist */}
-            <button
+            <motion.button
+              whileHover={{ scale: 1.15, y: -2 }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => openPlaylistModal(currentTrack)}
-              className="p-2.5 rounded-full liquid-glass-pill text-zinc-400 hover:text-white hover:scale-110 active:scale-95 transition-all"
+              className="p-2 rounded-full liquid-glass-pill text-zinc-400 hover:text-white transition-all"
               title="Add to Playlist"
             >
               <Plus className="w-4 h-4" />
-            </button>
+            </motion.button>
 
-            {/* Share */}
-            <button
+            <motion.button
+              whileHover={{ scale: 1.15, y: -2 }}
+              whileTap={{ scale: 0.9 }}
               onClick={handleShare}
-              className="p-2.5 rounded-full liquid-glass-pill text-zinc-400 hover:text-white hover:scale-110 active:scale-95 transition-all"
+              className="p-2 rounded-full liquid-glass-pill text-zinc-400 hover:text-white transition-all"
               title="Copy link"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
-            </button>
-
-            {/* Shuffle */}
-            <button
-              onClick={toggleShuffle}
-              className={`p-2.5 rounded-full border transition-all duration-200 hover:scale-110 active:scale-95 ${
-                isShuffle
-                  ? 'bg-primary/25 border-primary/50 text-primary shadow-[0_0_15px_rgba(168,85,247,0.35)]'
-                  : 'liquid-glass-pill text-zinc-400 hover:text-white'
-              }`}
-              title={isShuffle ? 'Shuffle is ON' : 'Shuffle is OFF'}
-            >
-              <Shuffle className="w-4 h-4" />
-            </button>
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
+
+        {/* 4. Living Progress Bar with Live Timestamps & Smooth Scrubbing */}
+        <NowPlayingProgressBar isExiting={isExiting} />
+
+        {/* 5. Living Main Playback Controls Cluster (Jumped from Music Player) */}
+        <motion.div
+          initial={{ opacity: 0, y: 45, scale: 0.88 }}
+          animate={isExiting ? { opacity: 0, y: 50, scale: 0.85 } : { opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 23, delay: isExiting ? 0 : 0.24 }}
+          className="w-full max-w-[500px] mx-auto flex items-center justify-center gap-6 sm:gap-7 mt-3"
+        >
+          {/* Shuffle Button */}
+          <motion.button
+            whileHover={{ scale: 1.15, y: -2 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={toggleShuffle}
+            className={`p-2 rounded-xl transition-all duration-200 ${
+              isShuffle
+                ? 'text-primary bg-primary/20 shadow-[0_0_12px_rgba(168,85,247,0.35)]'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+            title={isShuffle ? 'Shuffle is ON' : 'Shuffle is OFF'}
+          >
+            <Shuffle className="w-5 h-5" />
+          </motion.button>
+
+          {/* Previous Track */}
+          <motion.button
+            whileHover={{ scale: 1.15, y: -2 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={playPrevious}
+            className="text-zinc-300 hover:text-white transition-all p-2 rounded-xl hover:bg-white/10"
+            title="Previous Track"
+          >
+            <SkipBack className="w-6 h-6 fill-current" />
+          </motion.button>
+
+          {/* Centerpiece Luminescent Play/Pause Button */}
+          <motion.button
+            whileHover={{ scale: 1.1, y: -2 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={togglePlay}
+            disabled={isLoading}
+            className="w-14 h-14 flex items-center justify-center rounded-full bg-white text-black shadow-[0_0_30px_rgba(168,85,247,0.65)] hover:bg-zinc-100 transition-all disabled:opacity-50"
+            title={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+            ) : isPlaying ? (
+              <Pause className="w-6 h-6 fill-current" />
+            ) : (
+              <Play className="w-6 h-6 fill-current translate-x-0.5" />
+            )}
+          </motion.button>
+
+          {/* Next Track */}
+          <motion.button
+            whileHover={{ scale: 1.15, y: -2 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => nextTrack()}
+            className="text-zinc-300 hover:text-white transition-all p-2 rounded-xl hover:bg-white/10"
+            title="Next Track"
+          >
+            <SkipForward className="w-6 h-6 fill-current" />
+          </motion.button>
+
+          {/* Autoplay / Infinite Loop */}
+          <motion.button
+            whileHover={{ scale: 1.15, y: -2 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={toggleAutoplay}
+            className={`p-2 rounded-xl transition-all duration-200 ${
+              isAutoplayEnabled
+                ? 'text-cyan-400 bg-cyan-500/20 shadow-[0_0_12px_rgba(6,182,212,0.35)]'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+            title={isAutoplayEnabled ? 'Autoplay is active' : 'Autoplay is paused'}
+          >
+            <InfinityIcon className="w-5 h-5" />
+          </motion.button>
+        </motion.div>
+
+        {/* 6. Living Utilities Control Dock (Volume, EQ, Sleep Timer, Osmosis, Visualizer) */}
+        <motion.div
+          initial={{ opacity: 0, y: 40, scale: 0.92 }}
+          animate={isExiting ? { opacity: 0, y: 40, scale: 0.88 } : { opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 420, damping: 25, delay: isExiting ? 0 : 0.3 }}
+          className="w-full max-w-[500px] mx-auto flex items-center justify-between gap-3 p-2.5 rounded-2xl liquid-glass-dock border border-white/15 shadow-xl mt-3"
+          style={{
+            WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+            backdropFilter: 'blur(20px) saturate(140%)',
+          }}
+        >
+          {/* Volume Control */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleMute}
+              className="text-zinc-400 hover:text-white transition-colors p-1"
+              title={volume === 0 ? 'Unmute' : 'Mute'}
+            >
+              {volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+            <div
+              className="w-16 sm:w-20 h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer group relative shadow-inner"
+              onClick={handleVolumeClick}
+              title={`Volume: ${Math.round(volume * 100)}%`}
+            >
+              <div
+                className="absolute top-0 left-0 h-full bg-zinc-200 group-hover:bg-primary rounded-full transition-colors"
+                style={{ width: `${volume * 100}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="w-px h-4 bg-white/15" />
+
+          {/* 10-Band Graphic Equalizer */}
+          <motion.button
+            whileHover={{ scale: 1.15, y: -1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={toggleEqualizerModal}
+            className={`p-1.5 rounded-lg transition-all ${
+              isEqEnabled ? 'text-primary hover:text-purple-300' : 'text-zinc-400 hover:text-white'
+            }`}
+            title="10-Band Graphic Equalizer & Bass Booster"
+          >
+            <Sliders className="w-4 h-4" />
+          </motion.button>
+
+          {/* Sleep Timer */}
+          {isSleepTimerActive ? (
+            <motion.button
+              whileHover={{ scale: 1.1, y: -1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={toggleSleepTimerModal}
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_10px_rgba(6,182,212,0.25)]"
+              title={`Sleep Timer: ${Math.floor(sleepTimerSeconds / 60)}:${(sleepTimerSeconds % 60).toString().padStart(2, '0')} remaining`}
+            >
+              <Moon className="w-3 h-3" />
+              <span>{Math.floor(sleepTimerSeconds / 60)}:{(sleepTimerSeconds % 60).toString().padStart(2, '0')}</span>
+            </motion.button>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.15, y: -1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={toggleSleepTimerModal}
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-white transition-all"
+              title="Sleep Timer with smooth fade-out"
+            >
+              <Moon className="w-4 h-4" />
+            </motion.button>
+          )}
+
+          {/* Nocturne Osmosis Seamless Crossfade */}
+          <motion.button
+            whileHover={{ scale: 1.08, y: -1 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={cycleCrossfade}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all ${
+              crossfadeDuration > 0
+                ? 'bg-purple-500/15 text-purple-200 border-purple-500/30 shadow-[0_0_10px_rgba(168,85,247,0.25)]'
+                : 'bg-white/5 text-zinc-400 border-white/10 hover:text-white'
+            }`}
+            title={`Nocturne Osmosis: ${
+              crossfadeDuration === 0 ? 'Off (Click to cycle)' : `${crossfadeDuration}s overlap (Click to change)`
+            }`}
+          >
+            <Sparkles className="w-3 h-3 text-purple-300" />
+            <span className="font-semibold">{crossfadeDuration === 0 ? 'Fade Off' : `Fade ${crossfadeDuration}s`}</span>
+          </motion.button>
+
+          {/* Real-time Fullscreen Visualizer Modal Button */}
+          <motion.button
+            whileHover={{ scale: 1.15, y: -1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={openVisualizer}
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white transition-all"
+            title="Open Real-time Audio Visualizer Studio"
+          >
+            <Waves className="w-4 h-4" />
+          </motion.button>
+        </motion.div>
       </div>
 
-      {/* ── Right Pane: Tabs & Up Next / Autoplay Queue in Liquid Glass ──── */}
-      <div
-        className="w-full lg:w-[480px] xl:w-[540px] flex flex-col h-full liquid-glass-card rounded-3xl border border-white/15 overflow-hidden shadow-2xl relative z-10 transform-gpu will-change-transform"
+      {/* ── Right Half: Tabs & Up Next / Autoplay Queue in Liquid Glass ──── */}
+      <motion.div
+        animate={isExiting ? { y: 60, opacity: 0, scale: 0.96 } : { y: 0, opacity: 1, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+        className="w-full lg:w-[460px] xl:w-[520px] flex flex-col h-full liquid-glass-card rounded-3xl border border-white/15 overflow-hidden shadow-2xl relative z-10 transform-gpu will-change-transform"
         style={{
           WebkitBackdropFilter: 'blur(28px) saturate(135%)',
           backdropFilter: 'blur(28px) saturate(135%)',
@@ -563,7 +879,6 @@ export default function NowPlayingPage() {
             ) : lyricsData?.lyrics && lyricsData.lyrics.length > 0 ? (
               <LyricsView
                 lyricsData={lyricsData}
-                currentTime={currentTime}
                 isPlaying={isPlaying}
                 onSeek={seek}
               />
@@ -633,7 +948,23 @@ export default function NowPlayingPage() {
             )}
           </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+
+      {/* ── Living Return Down Arrow at Bottom-Right ────────────────────── */}
+      <motion.button
+        onClick={handleExitNowPlaying}
+        initial={{ opacity: 0, scale: 0, y: 30 }}
+        animate={isExiting ? { opacity: 0, scale: 0, y: 30 } : { opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0, y: 30 }}
+        whileHover={{ scale: 1.15, y: -3 }}
+        whileTap={{ scale: 0.9 }}
+        transition={{ type: 'spring', stiffness: 420, damping: 22, delay: isExiting ? 0 : 0.35 }}
+        className="fixed bottom-6 right-8 z-50 flex items-center gap-2.5 px-4 py-3 rounded-full bg-purple-950/75 border border-purple-500/40 text-purple-200 hover:text-white hover:bg-purple-900/90 shadow-[0_10px_35px_rgba(168,85,247,0.45)] backdrop-blur-xl group transition-all"
+        title="Return to background page (Restores music player)"
+      >
+        <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline-block">Return</span>
+        <ChevronDown className="w-5 h-5 text-purple-300 group-hover:translate-y-1 transition-transform animate-bounce" />
+      </motion.button>
+    </motion.div>
   );
 }
