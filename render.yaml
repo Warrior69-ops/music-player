@@ -1,0 +1,42 @@
+services:
+  # NestJS backend API
+  - type: web
+    name: music-player-api
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: npm install && npm --workspace=apps/api run build
+    startCommand: npm --workspace=apps/api run start:prod
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 22.18.0
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: AUDIUS_API_KEY
+        sync: false
+      - key: JAMENDO_CLIENT_ID
+        sync: false
+      - key: MUSICBRAINZ_USER_AGENT
+        value: AntigravityMusic/1.0.0 ( contact@example.com )
+      - key: LRCLIB_USER_AGENT
+        value: LRCGET v0.2.0 (https://github.com/tranxuanthang/lrcget)
+
+  # Next.js frontend
+  - type: web
+    name: music-player-web
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: npm install && npm --workspace=apps/web run build
+    startCommand: npm --workspace=apps/web run start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 22.18.0
+      - key: NEXT_PUBLIC_API_URL
+        value: https://music-player-api.onrender.com
