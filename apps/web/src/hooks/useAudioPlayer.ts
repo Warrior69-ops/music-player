@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePlayerStore, Track, getTrackId } from '@/store/usePlayerStore';
 import { useEqualizerStore, EQ_FREQUENCIES } from '@/store/useEqualizerStore';
 import { useSleepTimerStore } from '@/store/useSleepTimerStore';
+import { getOfflineAudioBlobUrl } from './useOfflineSync';
 import api from '@/lib/api';
 import { create } from 'zustand';
 
@@ -27,6 +28,7 @@ let equalizerSubscribed = false;
 
 let currentLoadedTrackId: string | null = null;
 let warmedUpTrackId: string | null = null;
+let loggedTrackId: string | null = null;
 let isCrossfading = false;
 let crossfadeTimeout: NodeJS.Timeout | null = null;
 let lastTransitionTimestamp = 0;
@@ -54,6 +56,28 @@ function getActiveAudio() {
 
 function getStandbyAudio() {
   return currentActive === 'A' ? audioB : audioA;
+}
+
+async function resolveStreamUrl(track: Track): Promise<string | null> {
+  const trackId = getTrackId(track);
+  if (!trackId) return null;
+  
+  // 1. Check Offline Caching (IndexedDB)
+  const offlineUrl = await getOfflineAudioBlobUrl(trackId);
+  if (offlineUrl) return offlineUrl;
+
+  // 2. Fallback to Network Stream
+  let targetUrl = getTrackStreamUrl(track);
+  if (!targetUrl) {
+    try {
+      const { default: api } = await import('@/lib/api');
+      const response = await api.get(`/music/stream/${track.provider}/${trackId}`);
+      targetUrl = response.data.data;
+    } catch (e) {
+      console.error('Failed to resolve stream URL:', e);
+    }
+  }
+  return targetUrl || null;
 }
 
 function getTrackStreamUrl(track: Track): string {
@@ -236,12 +260,13 @@ export function warmupStandbyTrack(track: Track) {
   ensureAudioNodes();
   const standby = getStandbyAudio();
   if (standby) {
-    const targetUrl = getTrackStreamUrl(track);
-    if (targetUrl && standby.src !== targetUrl) {
-      standby.src = targetUrl;
-      standby.preload = 'auto';
-      standby.load();
-    }
+    resolveStreamUrl(track).then((targetUrl) => {
+      if (targetUrl && standby.src !== targetUrl) {
+        standby.src = targetUrl;
+        standby.preload = 'auto';
+        standby.load();
+      }
+    });
   }
 }
 
@@ -320,6 +345,16 @@ function ensureGlobalListeners() {
       }
 
       const { queue, currentIndex, crossfadeDuration, volume } = usePlayerStore.getState();
+
+      // ── 0. Log Play History (after 30s or 50% of song) ──
+      const currentTrack = usePlayerStore.getState().currentTrack;
+      const currentTrackId = currentTrack ? getTrackId(currentTrack) : null;
+      if (currentTrackId && currentTrackId !== loggedTrackId) {
+        if (elDur > 0 && cur >= Math.min(30, elDur * 0.5)) {
+          loggedTrackId = currentTrackId;
+          api.post('/history', currentTrack).catch(() => {});
+        }
+      }
 
       // ── 1. Speculative Next-Track Warmup (at d - 15s) ──
       if (elDur > 25 && cur >= elDur - 15) {
@@ -588,15 +623,7 @@ export function useAudioPlayer() {
         audioCtx.resume().catch(() => {});
       }
 
-      let targetUrl = getTrackStreamUrl(currentTrack);
-      if (!targetUrl) {
-        try {
-          const response = await api.get(`/music/stream/${currentTrack.provider}/${trackId}`);
-          targetUrl = response.data.data;
-        } catch (e) {
-          console.error('Failed to resolve stream URL:', e);
-        }
-      }
+      const targetUrl = await resolveStreamUrl(currentTrack);
 
       const active = getActiveAudio();
       const standby = getStandbyAudio();

@@ -11,12 +11,15 @@ import {
   Trash2,
   Sliders,
   Moon,
+  Download,
+  DownloadCloud,
 } from 'lucide-react';
 import { usePlayerStore, Track } from '@/store/usePlayerStore';
 import { useFavorites, useAddFavorite, useRemoveFavorite } from '@/hooks/queries';
 import { useUIStore } from '@/store/useUIStore';
 import { useEqualizerStore } from '@/store/useEqualizerStore';
 import { useSleepTimerStore } from '@/store/useSleepTimerStore';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { toast } from 'sonner';
 
 interface TrackMenuProps {
@@ -42,6 +45,11 @@ export const TrackMenu: React.FC<TrackMenuProps> = ({
   const addFavorite = useAddFavorite();
   const removeFavorite = useRemoveFavorite();
   const { openPlaylistModal } = useUIStore();
+  
+  const { isDownloaded, isDownloading, downloadTrack, removeTrack } = useOfflineSync();
+  const trackId = track?.providerTrackId || track?.id || '';
+  const downloaded = isDownloaded(trackId);
+  const downloading = isDownloading(trackId);
 
   const isFavorite = favorites?.some(
     (f) => f.providerTrackId === track.providerTrackId
@@ -149,6 +157,18 @@ export const TrackMenu: React.FC<TrackMenuProps> = ({
     setIsOpen(false);
   };
 
+  const handleToggleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsOpen(false);
+    if (!trackId) return;
+
+    if (downloaded) {
+      await removeTrack(trackId);
+    } else {
+      await downloadTrack(track);
+    }
+  };
+
   return (
     <div className={`relative inline-block text-left ${className}`}>
       {/* 3-Dot Trigger Button */}
@@ -210,6 +230,27 @@ export const TrackMenu: React.FC<TrackMenuProps> = ({
             >
               <ListPlus className="w-3.5 h-3.5 text-zinc-400" />
               <span>Add to Queue</span>
+            </button>
+
+            <div className="my-1 border-t border-white/10" />
+
+            {/* Offline Download */}
+            <button
+              onClick={handleToggleDownload}
+              disabled={downloading}
+              className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-colors text-left disabled:opacity-50"
+            >
+              {downloaded ? (
+                <>
+                  <DownloadCloud className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="text-cyan-400">Remove Download</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>{downloading ? 'Downloading...' : 'Download Offline'}</span>
+                </>
+              )}
             </button>
 
             <div className="my-1 border-t border-white/10" />

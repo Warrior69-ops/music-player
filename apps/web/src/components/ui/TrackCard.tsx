@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Play, Pause } from 'lucide-react';
 import { usePlayerStore, Track, QueueSource } from '@/store/usePlayerStore';
@@ -35,15 +35,37 @@ export function TrackCard({ track, contextQueue, trackIndex, queueSource, onRemo
     }
   };
 
-  const handleWarmup = () => {
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      warmupStandbyTrack(track);
+    }, 1200); // 1.2s window
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
+  }, []);
+
+  const handlePointerDown = () => {
     warmupStandbyTrack(track);
   };
 
   return (
     <div
       onClick={handlePlay}
-      onMouseEnter={handleWarmup}
-      onPointerDown={handleWarmup}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onPointerDown={handlePointerDown}
       className={`group relative aspect-square w-full liquid-glass-card rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 transform-gpu will-change-transform [content-visibility:auto] [contain-intrinsic-size:210px_210px] ${
         isCurrentTrack
           ? 'border-purple-500/70 ring-1 ring-purple-500/50 shadow-[0_10px_30px_rgba(139,92,246,0.35)]'

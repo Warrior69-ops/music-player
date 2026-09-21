@@ -29,7 +29,7 @@ export class MusicController {
       throw new BadRequestException('Query parameter "q" is required');
 
     // If a specific category or 'all' is requested
-    if (type && ['all', 'album', 'artist', 'playlist'].includes(type)) {
+    if (type && ['all', 'song', 'album', 'artist', 'playlist'].includes(type)) {
       const data = await this.musicService.searchCategorized(
         query,
         type as any,

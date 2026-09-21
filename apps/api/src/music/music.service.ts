@@ -95,11 +95,6 @@ export class MusicService {
     const url = await this.getProviderService(provider).getStreamUrl(id);
     if (!url) throw new BadRequestException('Stream URL not found');
 
-    // Log to history asynchronously so we don't block playback
-    this.historyService.logPlay(userId, track).catch((err) => {
-      this.logger.error(`Failed to log play history: ${err.message}`);
-    });
-
     return url;
   }
 

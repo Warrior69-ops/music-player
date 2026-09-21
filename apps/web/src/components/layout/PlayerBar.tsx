@@ -24,6 +24,8 @@ import {
   Sliders,
   Moon,
   Waves,
+  Download,
+  DownloadCloud,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -34,6 +36,7 @@ import { useFavorites, useAddFavorite, useRemoveFavorite, useLyrics } from '@/ho
 import { useUIStore } from '@/store/useUIStore';
 import { useEqualizerStore } from '@/store/useEqualizerStore';
 import { useSleepTimerStore } from '@/store/useSleepTimerStore';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { EqualizerBars } from '@/components/ui/EqualizerBars';
 import { ZigzagProgressBar } from '@/components/ui/ZigzagProgressBar';
 import { EqualizerModal } from '@/components/audio/EqualizerModal';
@@ -86,6 +89,22 @@ export function PlayerBar() {
   const { data: favorites } = useFavorites();
   const addFavorite = useAddFavorite();
   const removeFavorite = useRemoveFavorite();
+
+  const { isDownloaded, isDownloading, downloadTrack, removeTrack } = useOfflineSync();
+  const currentTrackId = currentTrack ? (currentTrack.providerTrackId || currentTrack.id) : null;
+  const downloaded = currentTrackId ? isDownloaded(currentTrackId) : false;
+  const downloading = currentTrackId ? isDownloading(currentTrackId) : false;
+
+  const handleToggleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen(false);
+    if (!currentTrack || !currentTrackId) return;
+    if (downloaded) {
+      await removeTrack(currentTrackId);
+    } else {
+      await downloadTrack(currentTrack);
+    }
+  };
 
   const { data: lyricsData, isLoading: isLyricsLoading } = useLyrics(
     currentTrack?.title,
@@ -376,6 +395,28 @@ export function PlayerBar() {
                         <span>Go to Album</span>
                       </Link>
                     ) : null}
+
+                    <div className="w-full h-px bg-white/10 my-1" />
+
+                    <button
+                      onClick={handleToggleDownload}
+                      disabled={downloading}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors disabled:opacity-50"
+                    >
+                      {downloaded ? (
+                        <>
+                          <DownloadCloud className="w-4 h-4 text-cyan-400" />
+                          <span className="text-cyan-400">Remove Download</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4 text-zinc-400" />
+                          <span>{downloading ? 'Downloading...' : 'Download Offline'}</span>
+                        </>
+                      )}
+                    </button>
+
+                    <div className="w-full h-px bg-white/10 my-1" />
 
                     <button
                       onClick={() => {

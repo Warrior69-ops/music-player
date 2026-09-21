@@ -47,8 +47,7 @@ export function Sidebar() {
 
         <div className="space-y-1">
           <p className="px-3 text-[11px] font-bold text-white uppercase tracking-wider mb-2">Your Library</p>
-          <NavLink href="/library" icon={Library} isActive={pathname.startsWith('/library')}>Playlists</NavLink>
-          <NavLink href="/favorites" icon={Heart} isActive={pathname.startsWith('/favorites')}>Favorites</NavLink>
+          <NavLink href="/library" icon={Library} isActive={pathname.startsWith('/library')}>Your Library</NavLink>
           <NavLink href="/history" icon={Clock} isActive={pathname.startsWith('/history')}>Recently Played</NavLink>
           <NavLink href="/stats" icon={BarChart3} isActive={pathname.startsWith('/stats')}>Stats & Wrapped</NavLink>
         </div>
