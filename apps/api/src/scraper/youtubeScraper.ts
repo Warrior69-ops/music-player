@@ -318,7 +318,19 @@ export async function getAlbumDetails(
         anyPHeader.thumbnail?.contents?.[0]?.url ||
         anyPHeader.thumbnails?.[0]?.url ||
         '';
-      const items = p.items || anyP.contents || [];
+      
+      let items: any[] = Array.from(p.items || anyP.contents || []);
+      
+      // Fetch continuations to support playlists > 100 tracks
+      let currentList = p;
+      let pages = 0;
+      while (currentList.has_continuation && pages < 10) { // Max ~1000 tracks
+        currentList = await currentList.getContinuation();
+        if (currentList.items) {
+          items = items.concat(currentList.items);
+        }
+        pages++;
+      }
 
       const tracks = items.map((t: any, idx: number) => ({
         provider: 'youtube',

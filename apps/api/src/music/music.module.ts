@@ -5,6 +5,7 @@ import { HistoryModule } from '../history/history.module';
 import { MusicService } from './music.service';
 import { MusicController } from './music.controller';
 import { YtDlpDaemonService } from './ytdlp-daemon.service';
+import { PlaylistImporterService } from './playlistImporter';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { YtDlpDaemonService } from './ytdlp-daemon.service';
       ttl: 3600000, // 1 hour in ms
     }),
   ],
-  providers: [MusicService, YtDlpDaemonService],
+  providers: [MusicService, YtDlpDaemonService, PlaylistImporterService],
   controllers: [MusicController],
   exports: [MusicService],
 })

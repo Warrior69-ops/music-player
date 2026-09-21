@@ -237,7 +237,7 @@ export default function OnboardingPage() {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
               <span className="text-xs font-semibold text-primary uppercase tracking-widest">
-                {isUpdating ? 'Update Tastes' : 'Welcome to Nocturne'}
+                {isUpdating ? 'Update Tastes' : 'Welcome to MELØ'}
               </span>
             </div>
 

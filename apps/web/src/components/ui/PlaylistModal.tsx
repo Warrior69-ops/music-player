@@ -9,7 +9,7 @@ import { X, Plus, Loader2 } from 'lucide-react';
 interface PlaylistModalProps {
   isOpen: boolean;
   onClose: () => void;
-  track: Track | null;
+  track: Track | Track[] | null;
 }
 
 export function PlaylistModal({ isOpen, onClose, track }: PlaylistModalProps) {
@@ -39,18 +39,24 @@ export function PlaylistModal({ isOpen, onClose, track }: PlaylistModalProps) {
     );
   };
 
-  const handleAddToPlaylist = (playlistId: string, playlistName: string) => {
+  const handleAddToPlaylist = async (playlistId: string, playlistName: string) => {
     if (!track) return;
-    addTrack.mutate(
-      { playlistId, track },
-      {
-        onSuccess: () => {
-          toast.success(`Added to ${playlistName}`);
-          onClose();
-        },
-        onError: () => toast.error('Failed to add to playlist')
+    
+    try {
+      if (Array.isArray(track)) {
+        // Add all tracks sequentially
+        for (const t of track) {
+          await addTrack.mutateAsync({ playlistId, track: t });
+        }
+        toast.success(`Added ${track.length} tracks to ${playlistName}`);
+      } else {
+        await addTrack.mutateAsync({ playlistId, track });
+        toast.success(`Added to ${playlistName}`);
       }
-    );
+      onClose();
+    } catch (e) {
+      toast.error('Failed to add to playlist');
+    }
   };
 
   return (

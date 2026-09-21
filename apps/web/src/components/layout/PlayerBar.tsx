@@ -182,9 +182,9 @@ export function PlayerBar() {
     const nextDuration = durations[(currentIndex + 1) % durations.length];
     setCrossfadeDuration(nextDuration);
     if (nextDuration === 0) {
-      toast.info('Nocturne Osmosis disabled');
+      toast.info('MELØ Osmosis disabled');
     } else {
-      toast.success(`Nocturne Osmosis set to ${nextDuration}s`);
+      toast.success(`MELØ Osmosis set to ${nextDuration}s`);
     }
   };
 
@@ -549,7 +549,7 @@ export function PlayerBar() {
             </button>
           )}
 
-          {/* Nocturne Osmosis Seamless Crossfade Toggle Pill */}
+          {/* MELØ Osmosis Seamless Crossfade Toggle Pill */}
           <button
             onClick={cycleCrossfade}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all duration-200 hover:scale-105 active:scale-95 ${
@@ -557,7 +557,7 @@ export function PlayerBar() {
                 ? 'bg-purple-500/15 text-purple-200 border-purple-500/30'
                 : 'bg-white/5 text-zinc-400 border-white/10 hover:text-white'
             }`}
-            title={`Nocturne Osmosis: ${
+            title={`MELØ Osmosis: ${
               crossfadeDuration === 0 ? 'Off (Click to cycle)' : `${crossfadeDuration}s overlap (Click to change)`
             }`}
           >

@@ -129,7 +129,8 @@ export const useCreatePlaylist = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ name, description }: { name: string; description?: string }) => {
-      await api.post('/playlists', { name, description });
+      const { data } = await api.post('/playlists', { name, description });
+      return data.data; // Assuming API responds with { success: true, data: Playlist }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['playlists'] }),
   });

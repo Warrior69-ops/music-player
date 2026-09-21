@@ -1,6 +1,8 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
   Query,
   Param,
   BadRequestException,
@@ -13,12 +15,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { Response, Request } from 'express';
 import { Readable } from 'node:stream';
 import { YtDlpDaemonService, keepAliveAgent } from './ytdlp-daemon.service';
+import { PlaylistImporterService } from './playlistImporter';
 
 @Controller('music')
 export class MusicController {
   constructor(
     private readonly musicService: MusicService,
     private readonly ytDlp: YtDlpDaemonService,
+    private readonly playlistImporter: PlaylistImporterService,
   ) {}
 
   // ── Endpoints ───────────────────────────────────────────────────────────────
@@ -307,5 +311,29 @@ export class MusicController {
       success: true,
       data: await this.musicService.getLyrics(track, artist, durNum),
     };
+  }
+
+  @Post('playlist/import')
+  async importPlaylist(@Body('url') url: string) {
+    if (!url) throw new BadRequestException('Playlist URL is required');
+    try {
+      if (url.includes('spotify.com') || url.includes('music.apple.com')) {
+        const data = await this.playlistImporter.importFromUrl(url);
+        return { success: true, data };
+      } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        // Use existing getAlbum method for YouTube playlists if it's a playlist URL
+        const urlObj = new URL(url);
+        const listId = urlObj.searchParams.get('list');
+        if (listId) {
+          const data = await this.musicService.getAlbum('VL' + listId);
+          return { success: true, data };
+        }
+        throw new BadRequestException('Invalid YouTube playlist URL');
+      } else {
+        throw new BadRequestException('Unsupported playlist URL provider');
+      }
+    } catch (error: any) {
+      throw new BadRequestException(error.message || 'Failed to import playlist');
+    }
   }
 }

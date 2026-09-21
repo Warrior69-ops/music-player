@@ -5,7 +5,7 @@ import { usePlayerStore } from '@/store/usePlayerStore';
 import { useAudioStateStore, useAudioPlayer } from './useAudioPlayer';
 
 /**
- * Global hook connecting Nocturne audio engine to the native browser MediaSession API.
+ * Global hook connecting MELØ audio engine to the native browser MediaSession API.
  * Supports Windows 10/11 physical keyboard media keys, Bluetooth headsets, lockscreen
  * controls, and taskbar media popups.
  */
@@ -41,7 +41,7 @@ export function useMediaSession() {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: currentTrack.title || 'Untitled Track',
       artist: currentTrack.artist || 'Unknown Artist',
-      album: currentTrack.album || 'Nocturne',
+      album: currentTrack.album || 'MELØ',
       artwork: artworkList,
     });
   }, [currentTrack]);

@@ -175,9 +175,9 @@ export default function NowPlayingPage() {
     const nextDuration = durations[(currentIndex + 1) % durations.length];
     setCrossfadeDuration(nextDuration);
     if (nextDuration === 0) {
-      toast.info('Nocturne Osmosis disabled');
+      toast.info('MELØ Osmosis disabled');
     } else {
-      toast.success(`Nocturne Osmosis set to ${nextDuration}s`);
+      toast.success(`MELØ Osmosis set to ${nextDuration}s`);
     }
   };
 
@@ -185,9 +185,13 @@ export default function NowPlayingPage() {
     if (isExiting) return;
     setIsExiting(true);
     setIsNowPlayingClosing(true);
-    const dest = previousPath && previousPath !== '/now-playing' ? previousPath : '/';
+    const hasValidPrev = previousPath && previousPath !== '/now-playing';
     setTimeout(() => {
-      router.push(dest);
+      if (hasValidPrev) {
+        router.back();
+      } else {
+        router.push('/');
+      }
       setTimeout(() => {
         setIsNowPlayingClosing(false);
         setIsExiting(false);
@@ -217,7 +221,7 @@ export default function NowPlayingPage() {
     if (queueSource?.name) return queueSource.name;
     if (currentTrack?.album) return currentTrack.album;
     if (currentTrack?.artist) return `${currentTrack.artist} Radio`;
-    return 'Nocturne Music';
+    return 'MELØ Music';
   }, [queueSource, currentTrack]);
 
   // If no track is loaded, show welcoming fallback
@@ -590,7 +594,7 @@ export default function NowPlayingPage() {
             </motion.button>
           )}
 
-          {/* Nocturne Osmosis Seamless Crossfade */}
+          {/* MELØ Osmosis Seamless Crossfade */}
           <motion.button
             whileHover={{ scale: 1.08, y: -1 }}
             whileTap={{ scale: 0.92 }}
@@ -600,7 +604,7 @@ export default function NowPlayingPage() {
                 ? 'bg-purple-500/15 text-purple-200 border-purple-500/30 shadow-[0_0_10px_rgba(168,85,247,0.25)]'
                 : 'bg-white/5 text-zinc-400 border-white/10 hover:text-white'
             }`}
-            title={`Nocturne Osmosis: ${
+            title={`MELØ Osmosis: ${
               crossfadeDuration === 0 ? 'Off (Click to cycle)' : `${crossfadeDuration}s overlap (Click to change)`
             }`}
           >
@@ -687,15 +691,27 @@ export default function NowPlayingPage() {
                 </h3>
               </div>
 
-              {queue.length > 1 && (
+              <div className="flex items-center gap-1">
                 <button
-                  onClick={clearQueue}
-                  className="text-xs text-zinc-400 hover:text-rose-400 transition-colors px-2 py-1 rounded-lg hover:bg-rose-500/10"
-                  title="Clear remaining upcoming tracks"
+                  onClick={() => {
+                    const tracksToSave = [currentTrack, ...userQueueItems.map((i) => i.track)];
+                    openPlaylistModal(tracksToSave);
+                  }}
+                  className="text-xs text-zinc-400 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/10"
+                  title="Save queue as playlist"
                 >
-                  Clear
+                  Save Queue
                 </button>
-              )}
+                {queue.length > 1 && (
+                  <button
+                    onClick={clearQueue}
+                    className="text-xs text-zinc-400 hover:text-rose-400 transition-colors px-2 py-1 rounded-lg hover:bg-rose-500/10"
+                    title="Clear remaining upcoming tracks"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* 1. Currently Playing Highlight Card */}

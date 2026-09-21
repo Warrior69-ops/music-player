@@ -114,7 +114,7 @@ export class HistoryService {
 
     const totalMinutes = Math.round(totalSeconds / 60);
 
-    let personaTitle = 'Cosmic Nocturne Explorer';
+    let personaTitle = 'Cosmic MELØ Explorer';
     let personaDesc =
       'Curator of serene evening soundscapes and midnight reverie.';
     if (totalPlays > 50) {

@@ -3,13 +3,13 @@ import { Track } from './usePlayerStore';
 
 interface UIState {
   isPlaylistModalOpen: boolean;
-  playlistModalTrack: Track | null;
+  playlistModalTrack: Track | Track[] | null;
   previousPath: string;
   isVisualizerOpen: boolean;
   visualizerMode: 'waves' | 'bars' | 'radial';
   isNowPlayingClosing: boolean;
 
-  openPlaylistModal: (track?: Track | null) => void;
+  openPlaylistModal: (track?: Track | Track[] | null) => void;
   closePlaylistModal: () => void;
   setPreviousPath: (path: string) => void;
   openVisualizer: () => void;

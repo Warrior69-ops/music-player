@@ -3,12 +3,12 @@ import localforage from 'localforage';
 const MAX_CACHED_TRACKS = 25;
 
 const autoCacheStore = localforage.createInstance({
-  name: 'NocturnePlayer',
+  name: 'MELØPlayer',
   storeName: 'auto_audio_cache',
 });
 
 const autoCacheIndexStore = localforage.createInstance({
-  name: 'NocturnePlayer',
+  name: 'MELØPlayer',
   storeName: 'auto_audio_index',
 });
 

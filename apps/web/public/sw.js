@@ -1,8 +1,8 @@
-// Nocturne Audio Service Worker - HTTP 206 Range Interceptor
+// MELØ Audio Service Worker - HTTP 206 Range Interceptor
 // Caches audio streams in Cache Storage and dynamically slices ArrayBuffers into HTTP 206 Partial Content
 // Provides true 0ms replays with 100% smooth timeline scrubbing without Blob URL memory leaks.
 
-const CACHE_NAME = 'nocturne-audio-v1';
+const CACHE_NAME = 'melø-audio-v1';
 const AUDIO_ENDPOINT_PATTERN = /\/music\/proxy\/youtube\/([a-zA-Z0-9_-]+)/;
 
 self.addEventListener('install', (event) => {
@@ -54,7 +54,7 @@ async function handleAudioRequest(request) {
               'Content-Length': String(slicedBuffer.byteLength),
               'Accept-Ranges': 'bytes',
               'Access-Control-Allow-Origin': '*',
-              'X-Nocturne-Cache': 'HIT',
+              'X-MELØ-Cache': 'HIT',
             },
           });
         }

@@ -76,7 +76,7 @@ export function WrappedModal({ isOpen, onClose, stats, userName = 'You' }: Wrapp
   const topTrack = stats?.topTracks?.[0];
   const topArtist = stats?.topArtists?.[0];
   const persona = stats?.persona || {
-    title: 'Cosmic Nocturne Explorer',
+    title: 'Cosmic MELØ Explorer',
     description: 'Drifting through nocturnal melodies and ambient frequencies.',
   };
 
@@ -124,7 +124,7 @@ export function WrappedModal({ isOpen, onClose, stats, userName = 'You' }: Wrapp
     // Brand Header
     ctx.fillStyle = '#c084fc';
     ctx.font = 'bold 36px sans-serif';
-    ctx.fillText('NOCTURNE MUSIC', 180, 360);
+    ctx.fillText('MELØ MUSIC', 180, 360);
 
     ctx.fillStyle = '#ffffff';
     ctx.font = '900 64px sans-serif';
@@ -148,7 +148,7 @@ export function WrappedModal({ isOpen, onClose, stats, userName = 'You' }: Wrapp
     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.font = '36px sans-serif';
     const anthemMinutes = topTrack?.minutesStreamed ?? (topTrack ? Math.max(1, Math.round(((topTrack.duration || 180) * (topTrack.playCount || 1)) / 60)) : 0);
-    ctx.fillText(`${topTrack?.artist || 'Nocturne Artist'} • ${anthemMinutes.toLocaleString()} MINS STREAMED`, 180, 890);
+    ctx.fillText(`${topTrack?.artist || 'MELØ Artist'} • ${anthemMinutes.toLocaleString()} MINS STREAMED`, 180, 890);
 
     // Stat 3: Top Artist
     ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
@@ -176,11 +176,11 @@ export function WrappedModal({ isOpen, onClose, stats, userName = 'You' }: Wrapp
     // Footer
     ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.font = 'bold 30px sans-serif';
-    ctx.fillText('LISTEN WITH NOCTURNE • LIQUID GLASS AUDIO', 260, 1540);
+    ctx.fillText('LISTEN WITH MELØ • LIQUID GLASS AUDIO', 260, 1540);
 
     // Trigger Download
     const link = document.createElement('a');
-    link.download = `Nocturne_Wrapped_${userName}.png`;
+    link.download = `MELØ_Wrapped_${userName}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
     toast.success('Wrapped story card downloaded!');
@@ -238,7 +238,7 @@ export function WrappedModal({ isOpen, onClose, stats, userName = 'You' }: Wrapp
                   <Sparkles className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-xs font-black uppercase tracking-widest text-white">
-                  Nocturne Wrapped
+                  MELØ Wrapped
                 </span>
               </div>
 
@@ -274,7 +274,7 @@ export function WrappedModal({ isOpen, onClose, stats, userName = 'You' }: Wrapp
                     <span className="block text-2xl text-zinc-400 font-semibold mt-1">minutes</span>
                   </h2>
                   <p className="text-sm text-zinc-300 max-w-xs">
-                    That&apos;s roughly {stats?.totalHours || 0} hours of pure rhythm and soundscapes explored on Nocturne.
+                    That&apos;s roughly {stats?.totalHours || 0} hours of pure rhythm and soundscapes explored on MELØ.
                   </p>
                 </motion.div>
               )}
@@ -414,7 +414,7 @@ export function WrappedModal({ isOpen, onClose, stats, userName = 'You' }: Wrapp
                   >
                     <div className="flex items-center justify-between border-b border-white/10 pb-2">
                       <span className="text-[10px] font-black uppercase tracking-widest text-purple-300">
-                        Nocturne Wrapped
+                        MELØ Wrapped
                       </span>
                       <span className="text-xs font-bold text-white">{userName}</span>
                     </div>

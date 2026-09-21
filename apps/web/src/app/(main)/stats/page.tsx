@@ -36,7 +36,7 @@ export default function StatsPage() {
 
   return (
     <div className="min-h-full pb-28 px-4 md:px-8 pt-6 max-w-7xl mx-auto space-y-8 select-none">
-      {/* ── Hero Banner: Launch Nocturne Wrapped ───────────────────────── */}
+      {/* ── Hero Banner: Launch MELØ Wrapped ───────────────────────── */}
       <div
         className="relative overflow-hidden rounded-3xl p-6 sm:p-10 border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
         style={{
@@ -175,7 +175,7 @@ export default function StatsPage() {
           </div>
           <div className="min-w-0">
             <div className="text-base sm:text-lg font-black text-purple-300 truncate">
-              {isLoading ? '...' : stats?.persona?.title || 'Nocturne Explorer'}
+              {isLoading ? '...' : stats?.persona?.title || 'MELØ Explorer'}
             </div>
             <p className="text-[11px] text-zinc-500 mt-0.5 truncate">
               Signature audio vibe
@@ -328,7 +328,7 @@ export default function StatsPage() {
         </div>
       )}
 
-      {/* Nocturne Wrapped Story Modal */}
+      {/* MELØ Wrapped Story Modal */}
       <WrappedModal
         isOpen={isWrappedOpen}
         onClose={() => setIsWrappedOpen(false)}

@@ -148,7 +148,7 @@ export const useEqualizerStore = create<EqualizerState>()(
       toggleModal: () => set((state) => ({ isModalOpen: !state.isModalOpen })),
     }),
     {
-      name: 'nocturne-equalizer-settings',
+      name: 'melø-equalizer-settings',
       partialize: (state) => ({
         isEnabled: state.isEnabled,
         activePresetId: state.activePresetId,

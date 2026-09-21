@@ -1,4 +1,4 @@
-# Nocturne Music Player 🎵
+# MELØ Music Player 🎵
 
 A modern, high-performance, full-stack music streaming web application built with **Next.js (Web)** and **NestJS (API)**, featuring an ultra-sleek glassmorphic purple aesthetic, instant song streaming, albums, artists, search autocomplete, playlist management, and keyboard shortcuts.
 

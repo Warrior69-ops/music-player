@@ -81,7 +81,7 @@ export function AudioVisualizerModal() {
             </div>
             <div>
               <h2 className="text-sm font-black tracking-wider uppercase text-white drop-shadow">
-                Nocturne Visualizer
+                MELØ Visualizer
               </h2>
               <p className="text-[11px] text-zinc-400">
                 Real-time frequency & audio reactive dynamics

@@ -14,12 +14,12 @@ export interface OfflineTrackMetadata {
 
 // Dedicated stores
 const audioBlobStore = localforage.createInstance({
-  name: 'NocturnePlayer',
+  name: 'MELØPlayer',
   storeName: 'audio_blobs',
 });
 
 const metadataStore = localforage.createInstance({
-  name: 'NocturnePlayer',
+  name: 'MELØPlayer',
   storeName: 'offline_metadata',
 });
 

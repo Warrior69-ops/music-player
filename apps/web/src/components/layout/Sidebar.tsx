@@ -35,7 +35,8 @@ export function Sidebar() {
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/30 flex items-center justify-center">
           <ListMusic className="w-4 h-4 text-white" />
         </div>
-        <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-100 to-white/60 tracking-tight">Nocturne</h1>
+        <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-100 to-white/60 tracking-tight">MELØ</h1>
+        <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5 ml-0.5">Listen differently.</p>
       </div>
 
       <nav className="flex-1 px-4 space-y-7 overflow-y-auto">

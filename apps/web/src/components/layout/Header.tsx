@@ -65,14 +65,14 @@ export function Header() {
           >
             <div className="px-4 py-2.5 border-b border-white/5">
               <p className="text-xs font-bold text-white truncate">
-                {user?.name || user?.username || 'Nocturne Listener'}
+                {user?.name || user?.username || 'MELØ Listener'}
               </p>
               <p className="text-[11px] text-zinc-400 truncate mt-0.5">
                 {user?.email || ''}
               </p>
               <div className="mt-2 flex items-center gap-1.5 text-[10px] text-primary font-semibold uppercase tracking-wider">
                 <Sparkles className="w-3 h-3" />
-                <span>Nocturne High Fidelity</span>
+                <span>MELØ High Fidelity</span>
               </div>
             </div>
 

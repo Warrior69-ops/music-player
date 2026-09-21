@@ -76,11 +76,8 @@ export const useSleepTimerStore = create<SleepTimerState>((set, get) => ({
 
         toast.info('Sleep timer finished. Sleep well! 🌙');
       } else {
-        // Smooth 15-second volume fade-out
+        // Smooth 15-second Web Audio volume fade-out
         if (nextRemaining <= 15) {
-          const fadeRatio = Math.max(0, nextRemaining / 15);
-          const targetVol = state.originalVolume * fadeRatio;
-          usePlayerStore.getState().setVolume(targetVol);
           set({ remainingSeconds: nextRemaining, isFadingOut: true });
         } else {
           set({ remainingSeconds: nextRemaining, isFadingOut: false });

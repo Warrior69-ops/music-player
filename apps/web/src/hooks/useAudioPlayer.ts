@@ -564,8 +564,31 @@ export function useAudioPlayer() {
 
     if (audioCtx && gainA && gainB) {
       const activeGain = currentActive === 'A' ? gainA : gainB;
-      activeGain.gain.setValueAtTime(volume, audioCtx.currentTime);
+      const isFading = useSleepTimerStore.getState().isFadingOut;
+      if (!isFading) {
+        activeGain.gain.setValueAtTime(volume, audioCtx.currentTime);
+      }
     }
+  }, [volume]);
+
+  // Handle native Web Audio Sleep Timer fade-out
+  useEffect(() => {
+    const unsub = useSleepTimerStore.subscribe((state, prevState) => {
+      if (state.isFadingOut && !prevState.isFadingOut) {
+        if (!audioCtx || !gainA || !gainB) return;
+        const activeGain = currentActive === 'A' ? gainA : gainB;
+        const now = audioCtx.currentTime;
+        activeGain.gain.setValueAtTime(activeGain.gain.value, now);
+        activeGain.gain.linearRampToValueAtTime(0.001, now + 15);
+      } else if (!state.isFadingOut && prevState.isFadingOut) {
+        if (!audioCtx || !gainA || !gainB) return;
+        const activeGain = currentActive === 'A' ? gainA : gainB;
+        const now = audioCtx.currentTime;
+        activeGain.gain.cancelScheduledValues(now);
+        activeGain.gain.setValueAtTime(volume, now);
+      }
+    });
+    return () => unsub();
   }, [volume]);
 
   // ── Speculative Queue Pipeline (2 Tracks Ahead) ─────────────────────────

@@ -81,7 +81,7 @@ export default function SectionDetailPage() {
       return {
         id: matchedShelf.id,
         title: matchedShelf.title,
-        description: matchedShelf.description || 'Personalized curation curated by Nocturne',
+        description: matchedShelf.description || 'Personalized curation curated by MELØ',
         items: matchedShelf.items || [],
         icon,
       };
