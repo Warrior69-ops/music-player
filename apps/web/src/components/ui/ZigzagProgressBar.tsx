@@ -236,14 +236,14 @@ export const ZigzagProgressBar: React.FC<ZigzagProgressBarProps> = ({
 
           {/* 4. Sleek Precision Playhead Bead (Accurately rides the zigzag waveform line) */}
           <div
-            className="absolute pointer-events-none z-20 transition-[transform] duration-75"
+            className="absolute pointer-events-none z-20 transition-all duration-75 ease-linear"
             style={{
               left: `${displayProgress}%`,
               top: `${getExactZigzagYPercent(displayProgress)}%`,
               transform: `translate(-50%, -50%) scale(${isDragging ? 1.25 : 1})`,
             }}
           >
-            <div className="w-1.5 h-1.5 rotate-45 rounded-[1px] bg-white border border-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.95)] transition-all group-hover:scale-125" />
+            <div className="w-1 h-1 rotate-45 rounded-[0.5px] bg-white shadow-[0_0_5px_rgba(255,255,255,0.9)] transition-all group-hover:scale-125" />
           </div>
 
           {/* 5. Hover Timestamp Tooltip */}

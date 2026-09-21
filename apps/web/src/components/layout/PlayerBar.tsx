@@ -130,10 +130,26 @@ export function PlayerBar() {
     }
   };
 
-  const handleVolumeClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const [isDraggingVolume, setIsDraggingVolume] = useState(false);
+
+  const handleVolumePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    setIsDraggingVolume(true);
     const bounds = e.currentTarget.getBoundingClientRect();
     const percent = (e.clientX - bounds.left) / bounds.width;
     setVolume(Math.max(0, Math.min(1, percent)));
+  };
+
+  const handleVolumePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingVolume) return;
+    const bounds = e.currentTarget.getBoundingClientRect();
+    const percent = (e.clientX - bounds.left) / bounds.width;
+    setVolume(Math.max(0, Math.min(1, percent)));
+  };
+
+  const handleVolumePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+    setIsDraggingVolume(false);
   };
 
   const toggleMute = () => {
@@ -578,7 +594,11 @@ export function PlayerBar() {
             </button>
             <div
               className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer group relative shadow-inner"
-              onClick={handleVolumeClick}
+              onPointerDown={handleVolumePointerDown}
+              onPointerMove={handleVolumePointerMove}
+              onPointerUp={handleVolumePointerUp}
+              onPointerCancel={handleVolumePointerUp}
+              onDoubleClick={toggleMute}
               title={`Volume: ${Math.round(volume * 100)}%`}
             >
               <div
