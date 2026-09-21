@@ -37,6 +37,7 @@ import { useUIStore } from '@/store/useUIStore';
 import { useEqualizerStore } from '@/store/useEqualizerStore';
 import { useSleepTimerStore } from '@/store/useSleepTimerStore';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
+import { useCoverColors } from '@/hooks/useCoverColors';
 import { EqualizerBars } from '@/components/ui/EqualizerBars';
 import { ZigzagProgressBar } from '@/components/ui/ZigzagProgressBar';
 import { EqualizerModal } from '@/components/audio/EqualizerModal';
@@ -83,6 +84,7 @@ export function PlayerBar() {
     toggleQueue,
     crossfadeDuration,
     setCrossfadeDuration,
+    setDominantColors,
   } = usePlayerStore();
 
   const { isLoading, togglePlay, seek } = useAudioPlayer();
@@ -134,6 +136,12 @@ export function PlayerBar() {
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMenuOpen]);
+
+  // Extract and sync dominant colors globally
+  const dominantColors = useCoverColors(currentTrack?.albumArt);
+  useEffect(() => {
+    setDominantColors(dominantColors);
+  }, [dominantColors, setDominantColors]);
 
   const handleFavoriteToggle = () => {
     if (!currentTrack) return;

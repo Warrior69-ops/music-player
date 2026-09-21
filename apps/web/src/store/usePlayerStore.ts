@@ -45,11 +45,13 @@ export interface PlayerState {
   warmedTrackIds: string[];
   crossfadeDuration: number; // in seconds: 0 (off), 3, 5 (default), 7, 10
   queueSource: QueueSource | null;
+  dominantColors: [string, string] | null; // Extracted from current track album art
 
   // Core Actions
   setCurrentTrack: (track: Track, source?: QueueSource | null) => void;
   setQueue: (tracks: Track[], startIndex?: number, source?: QueueSource | null) => void;
   setQueueSource: (source: QueueSource | null) => void;
+  setDominantColors: (colors: [string, string] | null) => void;
   playNext: (track?: Track) => void; // Advances queue if no arg, inserts next if track passed
   addToQueue: (track: Track) => void;
   nextTrack: () => void;
@@ -85,7 +87,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   warmedTrackIds: [],
   crossfadeDuration: 5, // 5s Apple Music sweet spot default
   queueSource: null,
+  dominantColors: null,
 
+  setDominantColors: (colors) => set({ dominantColors: colors }),
   setQueueSource: (source: QueueSource | null) => set({ queueSource: source }),
 
   setCurrentTrack: (track: Track, source?: QueueSource | null) => {

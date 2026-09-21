@@ -722,7 +722,6 @@ export function useAudioPlayer() {
             });
           }
 
-          api.post('/history', currentTrack).catch(console.error);
           if (targetUrl && !targetUrl.startsWith('blob:')) {
             import('@/lib/audioCache')
               .then(({ autoCacheTrackAudio }) => autoCacheTrackAudio(trackId, targetUrl))
@@ -750,7 +749,6 @@ export function useAudioPlayer() {
           });
         }
 
-        api.post('/history', currentTrack).catch(console.error);
         if (targetUrl && !targetUrl.startsWith('blob:')) {
           import('@/lib/audioCache')
             .then(({ autoCacheTrackAudio }) => autoCacheTrackAudio(trackId, targetUrl))

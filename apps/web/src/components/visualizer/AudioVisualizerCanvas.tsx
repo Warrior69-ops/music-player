@@ -2,6 +2,15 @@
 
 import React, { useEffect, useRef } from 'react';
 import { getAudioAnalyser } from '@/hooks/useAudioPlayer';
+import { usePlayerStore } from '@/store/usePlayerStore';
+
+/** Helper to add alpha to rgb(r, g, b) strings */
+function addAlpha(rgbStr: string, alpha: number) {
+  if (rgbStr.startsWith('rgb(')) {
+    return rgbStr.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+  }
+  return rgbStr;
+}
 
 interface AudioVisualizerCanvasProps {
   mode: 'waves' | 'bars' | 'radial';
@@ -18,6 +27,7 @@ export function AudioVisualizerCanvas({
   const animFrameId = useRef<number | null>(null);
   const phaseRef = useRef<number>(0);
   const peaksRef = useRef<number[]>([]);
+  const { dominantColors } = usePlayerStore();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -65,11 +75,11 @@ export function AudioVisualizerCanvas({
       const bassAvg = bassSum / 12 / 255; // 0 to 1
 
       if (mode === 'waves') {
-        renderAuroraWaves(ctx, width, height, timeData, freqData, phaseRef.current, bassAvg);
+        renderAuroraWaves(ctx, width, height, timeData, freqData, phaseRef.current, bassAvg, dominantColors);
       } else if (mode === 'bars') {
-        renderGlassBars(ctx, width, height, freqData, peaksRef, bassAvg);
+        renderGlassBars(ctx, width, height, freqData, peaksRef, bassAvg, dominantColors);
       } else if (mode === 'radial') {
-        renderRadialPulse(ctx, width, height, freqData, bassAvg, phaseRef.current);
+        renderRadialPulse(ctx, width, height, freqData, bassAvg, phaseRef.current, dominantColors);
       }
     };
 
@@ -98,27 +108,35 @@ function renderAuroraWaves(
   timeData: Uint8Array,
   freqData: Uint8Array,
   phase: number,
-  bass: number
+  bass: number,
+  colors: [string, string] | null
 ) {
   const midY = height * 0.55;
+  const c1 = colors ? addAlpha(colors[0], 0.45) : 'rgba(168, 85, 247, 0.45)';
+  const c2 = colors ? addAlpha(colors[0], 0.02) : 'rgba(126, 34, 206, 0.02)';
+  const c3 = colors ? addAlpha(colors[1], 0.4) : 'rgba(6, 182, 212, 0.4)';
+  const c4 = colors ? addAlpha(colors[1], 0.02) : 'rgba(8, 145, 178, 0.02)';
+  const c5 = colors ? addAlpha(colors[0], 0.3) : 'rgba(236, 72, 153, 0.4)';
+  const c6 = colors ? addAlpha(colors[0], 0.01) : 'rgba(190, 24, 93, 0.02)';
+
   const layers = [
     {
-      color1: 'rgba(168, 85, 247, 0.45)', // purple
-      color2: 'rgba(126, 34, 206, 0.02)',
+      color1: c1,
+      color2: c2,
       speed: 1.0,
       amp: (height * 0.22) * (0.5 + bass * 0.8),
       freqMult: 1.0,
     },
     {
-      color1: 'rgba(6, 182, 212, 0.4)', // cyan
-      color2: 'rgba(8, 145, 178, 0.02)',
+      color1: c3,
+      color2: c4,
       speed: 1.3,
       amp: (height * 0.18) * (0.4 + bass * 0.7),
       freqMult: 1.4,
     },
     {
-      color1: 'rgba(236, 72, 153, 0.4)', // fuchsia
-      color2: 'rgba(190, 24, 93, 0.02)',
+      color1: c5,
+      color2: c6,
       speed: 0.8,
       amp: (height * 0.15) * (0.3 + bass * 0.6),
       freqMult: 0.8,
@@ -183,7 +201,8 @@ function renderGlassBars(
   height: number,
   freqData: Uint8Array,
   peaksRef: React.MutableRefObject<number[]>,
-  bass: number
+  bass: number,
+  colors: [string, string] | null
 ) {
   const barCount = 48;
   const spacing = 4 * window.devicePixelRatio;
@@ -216,9 +235,9 @@ function renderGlassBars(
 
     // Pillar gradient
     const grad = ctx.createLinearGradient(x, y, x, baseY);
-    grad.addColorStop(0, '#c084fc'); // purple-400
-    grad.addColorStop(0.5, '#a855f7'); // primary
-    grad.addColorStop(1, 'rgba(168, 85, 247, 0.15)');
+    grad.addColorStop(0, colors ? addAlpha(colors[1], 0.9) : '#c084fc');
+    grad.addColorStop(0.5, colors ? addAlpha(colors[0], 0.9) : '#a855f7');
+    grad.addColorStop(1, colors ? addAlpha(colors[0], 0.15) : 'rgba(168, 85, 247, 0.15)');
 
     ctx.fillStyle = grad;
     roundRect(ctx, x, y, barWidth, barHeight, barWidth / 2);
@@ -232,8 +251,8 @@ function renderGlassBars(
     // Mirrored glassy reflection beneath
     const reflHeight = barHeight * 0.35;
     const reflGrad = ctx.createLinearGradient(x, baseY, x, baseY + reflHeight);
-    reflGrad.addColorStop(0, 'rgba(168, 85, 247, 0.25)');
-    reflGrad.addColorStop(1, 'rgba(168, 85, 247, 0.0)');
+    reflGrad.addColorStop(0, colors ? addAlpha(colors[0], 0.25) : 'rgba(168, 85, 247, 0.25)');
+    reflGrad.addColorStop(1, colors ? addAlpha(colors[0], 0.0) : 'rgba(168, 85, 247, 0.0)');
 
     ctx.fillStyle = reflGrad;
     roundRect(ctx, x, baseY + 2 * window.devicePixelRatio, barWidth, reflHeight, barWidth / 2);
@@ -248,7 +267,8 @@ function renderRadialPulse(
   height: number,
   freqData: Uint8Array,
   bass: number,
-  phase: number
+  phase: number,
+  colors: [string, string] | null
 ) {
   const centerX = width / 2;
   const centerY = height / 2;
@@ -262,7 +282,7 @@ function renderRadialPulse(
     ctx.beginPath();
     ctx.arc(centerX, centerY, shockRadius, 0, Math.PI * 2);
     ctx.lineWidth = 2 * window.devicePixelRatio;
-    ctx.strokeStyle = `rgba(168, 85, 247, ${Math.max(0, 0.4 - (shockRadius / minDim))})`;
+    ctx.strokeStyle = colors ? addAlpha(colors[0], Math.max(0, 0.4 - (shockRadius / minDim))) : `rgba(168, 85, 247, ${Math.max(0, 0.4 - (shockRadius / minDim))})`;
     ctx.stroke();
   }
 
@@ -275,8 +295,8 @@ function renderRadialPulse(
     centerY,
     baseRadius
   );
-  innerGrad.addColorStop(0, 'rgba(168, 85, 247, 0.35)');
-  innerGrad.addColorStop(0.7, 'rgba(6, 182, 212, 0.15)');
+  innerGrad.addColorStop(0, colors ? addAlpha(colors[0], 0.35) : 'rgba(168, 85, 247, 0.35)');
+  innerGrad.addColorStop(0.7, colors ? addAlpha(colors[1], 0.15) : 'rgba(6, 182, 212, 0.15)');
   innerGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
   ctx.fillStyle = innerGrad;
@@ -297,8 +317,8 @@ function renderRadialPulse(
     const y2 = centerY + Math.sin(angle) * (baseRadius + spokeLen);
 
     const spikeGrad = ctx.createLinearGradient(x1, y1, x2, y2);
-    spikeGrad.addColorStop(0, 'rgba(168, 85, 247, 0.8)');
-    spikeGrad.addColorStop(1, 'rgba(6, 182, 212, 0.9)');
+    spikeGrad.addColorStop(0, colors ? addAlpha(colors[0], 0.8) : 'rgba(168, 85, 247, 0.8)');
+    spikeGrad.addColorStop(1, colors ? addAlpha(colors[1], 0.9) : 'rgba(6, 182, 212, 0.9)');
 
     ctx.beginPath();
     ctx.moveTo(x1, y1);

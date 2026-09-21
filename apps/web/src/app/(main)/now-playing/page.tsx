@@ -279,10 +279,6 @@ export default function NowPlayingPage() {
         {/* Deep Dark Vignette for contrast and readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-[#0c071a]/70 to-[#07040d]/90" />
 
-        {/* Vibrant fluid gradient aura orbs for optical saturation */}
-        <div className="absolute top-0 -left-10 w-[550px] h-[550px] rounded-full bg-purple-600/30 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 right-10 w-[600px] h-[600px] rounded-full bg-violet-600/25 blur-[130px] pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-fuchsia-600/20 blur-[140px] pointer-events-none" />
       </div>
 
       {/* ── Left Half: Cosmic Pulse Centerpiece & Living Player Controls ── */}
