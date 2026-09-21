@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -34,7 +34,8 @@ import { useEqualizerStore } from '@/store/useEqualizerStore';
 import { useSleepTimerStore } from '@/store/useSleepTimerStore';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useFavorites, useAddFavorite, useRemoveFavorite, useLyrics } from '@/hooks/queries';
-import { AudioVisualizerCanvas } from '@/components/visualizer/AudioVisualizerCanvas';
+import { AudioVisualizerCanvas, addAlpha } from '@/components/visualizer/AudioVisualizerCanvas';
+import { useCoverColors } from '@/hooks/useCoverColors';
 import { EqualizerBars } from '@/components/ui/EqualizerBars';
 import { LyricsView } from '@/components/ui/LyricsView';
 import { NowPlayingProgressBar } from '@/components/ui/NowPlayingProgressBar';
@@ -75,7 +76,16 @@ export default function NowPlayingPage() {
     playPrevious,
     crossfadeDuration,
     setCrossfadeDuration,
+    dominantColors,
+    setDominantColors,
   } = usePlayerStore();
+
+  const extractedColors = useCoverColors(currentTrack?.albumArt);
+  useEffect(() => {
+    if (extractedColors) {
+      setDominantColors(extractedColors);
+    }
+  }, [extractedColors, setDominantColors]);
 
   const {
     openPlaylistModal,
@@ -313,11 +323,19 @@ export default function NowPlayingPage() {
               mode="radial"
               isPlaying={isPlaying}
               className="w-full h-full"
+              centerRadiusRatio={0.38}
             />
           </div>
 
           {/* Central Rotating Vinyl Album Cover Disc */}
-          <div className="relative z-20 w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden border-2 border-white/30 shadow-[0_0_45px_rgba(168,85,247,0.6)] group-hover:scale-105 transition-transform duration-500">
+          <div
+            className="relative z-20 w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden border-2 border-white/30 group-hover:scale-105 transition-all duration-500"
+            style={{
+              boxShadow: dominantColors
+                ? `0 0 50px ${addAlpha(dominantColors[0], 0.65)}`
+                : '0 0 45px rgba(255, 255, 255, 0.25)',
+            }}
+          >
             <div
               className={`w-full h-full rounded-full overflow-hidden ${
                 isPlaying ? 'animate-spin-slow' : ''
@@ -330,7 +348,7 @@ export default function NowPlayingPage() {
                   className="w-full h-full object-cover select-none pointer-events-none"
                 />
               ) : (
-                <div className="w-full h-full bg-purple-950 flex items-center justify-center">
+                <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
                   <Music2 className="w-12 h-12 text-white/40" />
                 </div>
               )}
@@ -341,7 +359,12 @@ export default function NowPlayingPage() {
 
             {/* Vinyl Spindle Center Hole */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-black/90 border border-white/40 shadow-inner flex items-center justify-center">
-              <div className="w-1.5 h-1.5 rounded-full bg-purple-400/60" />
+              <div
+                className="w-1.5 h-1.5 rounded-full"
+                style={{
+                  backgroundColor: dominantColors ? dominantColors[0] : 'rgba(255, 255, 255, 0.6)',
+                }}
+              />
             </div>
           </div>
         </motion.div>

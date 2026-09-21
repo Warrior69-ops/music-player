@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface Track {
   provider: string;
@@ -73,8 +74,10 @@ export interface PlayerState {
   addWarmedTrackId: (id: string) => void;
 }
 
-export const usePlayerStore = create<PlayerState>((set, get) => ({
-  currentTrack: null,
+export const usePlayerStore = create<PlayerState>()(
+  persist(
+    (set, get) => ({
+      currentTrack: null,
   queue: [],
   originalQueue: [],
   currentIndex: -1,
@@ -429,7 +432,23 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         ? state.warmedTrackIds
         : [...state.warmedTrackIds, id],
     })),
-}));
+    }),
+    {
+      name: 'melo-player-storage',
+      partialize: (state) => ({
+        queue: state.queue,
+        originalQueue: state.originalQueue,
+        currentIndex: state.currentIndex,
+        currentTrack: state.currentTrack,
+        volume: state.volume,
+        isShuffle: state.isShuffle,
+        isAutoplayEnabled: state.isAutoplayEnabled,
+        crossfadeDuration: state.crossfadeDuration,
+        queueSource: state.queueSource,
+      }),
+    }
+  )
+);
 
 // Background Autoplay Pre-fetcher
 // Ensures that if Autoplay is enabled, we automatically populate upcoming Autoplay tracks immediately,

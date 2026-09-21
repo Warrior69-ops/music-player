@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 /**
- * Helper to get the distance between two RGB colors
+ * Helper to get Euclidean distance between two RGB colors
  */
 function colorDistance(r1: number, g1: number, b1: number, r2: number, g2: number, b2: number) {
   return Math.sqrt(Math.pow(r2 - r1, 2) + Math.pow(g2 - g1, 2) + Math.pow(b2 - b1, 2));
@@ -26,8 +26,9 @@ function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
 }
 
 function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  h = ((h % 360) + 360) % 360;
   h /= 360;
-  let r, g, b;
+  let r: number, g: number, b: number;
 
   if (s === 0) {
     r = g = b = l; // achromatic
@@ -49,18 +50,115 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
 
+/**
+ * Amplifies any color to a vibrant, glowing neon tone while preserving its true hue.
+ */
 function amplifyToNeon(r: number, g: number, b: number): [number, number, number] {
   let [h, s, l] = rgbToHsl(r, g, b);
-  // Neon Amplification: Force high saturation, clamp lightness into glowing "sweet spot"
-  s = Math.max(s, 0.75); 
-  if (l < 0.45) l = 0.55; 
-  if (l > 0.7) l = 0.65;  
+  // Guarantee high saturation for glowing, electric visualizer graphics
+  s = Math.max(s, 0.85);
+  // Lightness sweet spot: luminous, radiant, and clear on dark backdrops
+  if (l < 0.48) l = 0.56;
+  if (l > 0.68) l = 0.62;
   return hslToRgb(h, s, l);
 }
 
 /**
+ * Extracts dominant colors from raw image pixel data.
+ * Rules:
+ * 1. If any chromatic color shades exist in the art, extracts and amplifies those exact hues.
+ * 2. If single-color artwork, generates a harmonious analogous hue (+35 deg) without polluting with purple.
+ * 3. If strictly monochrome (only black, grey, white), uses opposite-lightness color:
+ *    - Dark / black art -> Radiant diamond platinum/white
+ *    - Light / white art -> Deep obsidian charcoal
+ */
+function extractColorsFromImageData(imageData: ImageData): [string, string] {
+  const data = imageData.data;
+  let totalL = 0;
+  let validPixels = 0;
+
+  // Track chromatic pixels and group them into 18 hue sectors (20 deg each)
+  const chromaticBins: Record<number, { r: number; g: number; b: number; count: number }> = {};
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+
+    if (a < 128) continue; // Skip transparent
+
+    const [h, s, l] = rgbToHsl(r, g, b);
+    totalL += l;
+    validPixels++;
+
+    // Chromatic pixel: has visible saturation (>= 0.08) and is not absolute black or blinding white
+    if (s >= 0.08 && l >= 0.04 && l <= 0.96) {
+      const hBin = Math.floor(h / 20) * 20;
+      if (!chromaticBins[hBin]) {
+        chromaticBins[hBin] = { r: 0, g: 0, b: 0, count: 0 };
+      }
+      chromaticBins[hBin].r += r;
+      chromaticBins[hBin].g += g;
+      chromaticBins[hBin].b += b;
+      chromaticBins[hBin].count++;
+    }
+  }
+
+  const avgLightness = validPixels > 0 ? totalL / validPixels : 0.5;
+  const sortedBins = Object.values(chromaticBins).sort((a, b) => b.count - a.count);
+
+  if (sortedBins.length > 0) {
+    // ── Case 1: Chromatic colors found ──────────────────────────────────────
+    const primaryBin = sortedBins[0];
+    const pR = Math.floor(primaryBin.r / primaryBin.count);
+    const pG = Math.floor(primaryBin.g / primaryBin.count);
+    const pB = Math.floor(primaryBin.b / primaryBin.count);
+
+    // Look for a distinct secondary hue from the artwork
+    let accentBin = sortedBins.find(bin => {
+      const bR = Math.floor(bin.r / bin.count);
+      const bG = Math.floor(bin.g / bin.count);
+      const bB = Math.floor(bin.b / bin.count);
+      return colorDistance(pR, pG, pB, bR, bG, bB) > 60;
+    });
+
+    let aR: number, aG: number, aB: number;
+
+    if (accentBin) {
+      aR = Math.floor(accentBin.r / accentBin.count);
+      aG = Math.floor(accentBin.g / accentBin.count);
+      aB = Math.floor(accentBin.b / accentBin.count);
+    } else {
+      // Single-hue artwork (e.g. yellow & black, or monochrome red):
+      // Generate harmonious analogous accent (+35 deg hue shift), staying in natural color family
+      const [pH, pS, pL] = rgbToHsl(pR, pG, pB);
+      const [nAR, nAG, nAB] = hslToRgb((pH + 35) % 360, pS, pL);
+      aR = nAR;
+      aG = nAG;
+      aB = nAB;
+    }
+
+    const [neonPR, neonPG, neonPB] = amplifyToNeon(pR, pG, pB);
+    const [neonAR, neonAG, neonAB] = amplifyToNeon(aR, aG, aB);
+
+    return [`rgb(${neonPR}, ${neonPG}, ${neonPB})`, `rgb(${neonAR}, ${neonAG}, ${neonAB})`];
+  }
+
+  // ── Case 2: Pure Monochrome Artwork (Black, Grey, White) ────────────────
+  // Apply opposite lightness:
+  if (avgLightness < 0.5) {
+    // Dark cover -> Radiant luminous platinum/white glow
+    return ['rgb(245, 248, 255)', 'rgb(205, 225, 255)'];
+  } else {
+    // Light cover -> Deep sleek obsidian/charcoal glow
+    return ['rgb(30, 32, 45)', 'rgb(65, 75, 95)'];
+  }
+}
+
+/**
  * Hook to extract dominant colors from an image URL using an offscreen canvas.
- * Returns [primaryColor, accentColor] in RGB format (e.g. 'rgb(255, 0, 0)').
+ * Falls back seamlessly to the backend image proxy if direct CORS is restricted.
  */
 export function useCoverColors(imageUrl?: string | null): [string, string] | null {
   const [colors, setColors] = useState<[string, string] | null>(null);
@@ -72,106 +170,54 @@ export function useCoverColors(imageUrl?: string | null): [string, string] | nul
     }
 
     let isMounted = true;
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.src = imageUrl;
 
-    img.onload = () => {
-      if (!isMounted) return;
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        if (!ctx) return;
+    const tryExtract = (url: string, isProxyRetry = false) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
 
-        // Downscale for performance
-        const size = 64;
-        canvas.width = size;
-        canvas.height = size;
-        ctx.drawImage(img, 0, 0, size, size);
+      img.onload = () => {
+        if (!isMounted) return;
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (!ctx) return;
 
-        const imageData = ctx.getImageData(0, 0, size, size);
-        const data = imageData.data;
-        const colorCounts: Record<string, { r: number; g: number; b: number; count: number }> = {};
+          const size = 64;
+          canvas.width = size;
+          canvas.height = size;
+          ctx.drawImage(img, 0, 0, size, size);
 
-        for (let i = 0; i < data.length; i += 4) {
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          const a = data[i + 3];
-
-          // Ignore transparent pixels
-          if (a < 128) continue;
-
-          // Convert to HSL to filter out muddy/gray/black/white pixels
-          const [, s, l] = rgbToHsl(r, g, b);
-          if (s < 0.15 || l < 0.15 || l > 0.85) continue;
-
-          // Group colors into bins to find dominant clusters
-          const binSize = 15;
-          const rBin = Math.floor(r / binSize) * binSize;
-          const gBin = Math.floor(g / binSize) * binSize;
-          const bBin = Math.floor(b / binSize) * binSize;
-          const key = `${rBin},${gBin},${bBin}`;
-
-          if (!colorCounts[key]) {
-            colorCounts[key] = { r: 0, g: 0, b: 0, count: 0 };
+          const imageData = ctx.getImageData(0, 0, size, size);
+          const extracted = extractColorsFromImageData(imageData);
+          setColors(extracted);
+        } catch (err) {
+          if (!isProxyRetry) {
+            // Taint or CORS blocked -> Retry via backend image proxy
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const proxyUrl = `${apiUrl}/music/proxy/image?url=${encodeURIComponent(imageUrl)}`;
+            tryExtract(proxyUrl, true);
+          } else {
+            console.warn('Cover color extraction blocked or failed:', err);
           }
-          colorCounts[key].r += r;
-          colorCounts[key].g += g;
-          colorCounts[key].b += b;
-          colorCounts[key].count += 1;
         }
+      };
 
-        const sortedColors = Object.values(colorCounts).sort((a, b) => b.count - a.count);
-
-        if (sortedColors.length === 0) {
-          // Grayscale fallback: Icy Cyan & Electric Violet
-          setColors(['rgb(6, 182, 212)', 'rgb(139, 92, 246)']);
-          return;
-        }
-
-        // Calculate exact average of the most dominant bin
-        const primary = sortedColors[0];
-        const pR = Math.floor(primary.r / primary.count);
-        const pG = Math.floor(primary.g / primary.count);
-        const pB = Math.floor(primary.b / primary.count);
-
-        // Find an accent color that is sufficiently different
-        let accent = sortedColors.find(c => {
-          const cR = Math.floor(c.r / c.count);
-          const cG = Math.floor(c.g / c.count);
-          const cB = Math.floor(c.b / c.count);
-          return colorDistance(pR, pG, pB, cR, cG, cB) > 80;
-        });
-
-        let aR = pR, aG = pG, aB = pB;
-
-        if (accent) {
-          aR = Math.floor(accent.r / accent.count);
-          aG = Math.floor(accent.g / accent.count);
-          aB = Math.floor(accent.b / accent.count);
+      img.onerror = () => {
+        if (!isMounted) return;
+        if (!isProxyRetry) {
+          // Direct load error -> Retry via backend image proxy
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+          const proxyUrl = `${apiUrl}/music/proxy/image?url=${encodeURIComponent(imageUrl)}`;
+          tryExtract(proxyUrl, true);
         } else {
-          // If no distinct accent found, generate an analogous variation
-          aR = Math.min(255, pR + 40);
-          aG = Math.max(0, pG - 20);
-          aB = Math.min(255, pB + 40);
+          console.warn('Cover image load failed:', url);
         }
+      };
 
-        const [neonPR, neonPG, neonPB] = amplifyToNeon(pR, pG, pB);
-        const [neonAR, neonAG, neonAB] = amplifyToNeon(aR, aG, aB);
-
-        setColors([`rgb(${neonPR}, ${neonPG}, ${neonPB})`, `rgb(${neonAR}, ${neonAG}, ${neonAB})`]);
-      } catch (err) {
-        // CORS or Canvas taint error
-        console.warn('Cover color extraction blocked by CORS or failed:', err);
-        setColors(null);
-      }
+      img.src = url;
     };
 
-    img.onerror = () => {
-      if (!isMounted) return;
-      setColors(null);
-    };
+    tryExtract(imageUrl);
 
     return () => {
       isMounted = false;

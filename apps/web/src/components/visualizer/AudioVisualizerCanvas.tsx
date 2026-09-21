@@ -5,7 +5,7 @@ import { getAudioAnalyser } from '@/hooks/useAudioPlayer';
 import { usePlayerStore } from '@/store/usePlayerStore';
 
 /** Helper to add alpha to rgb(r, g, b) strings */
-function addAlpha(rgbStr: string, alpha: number) {
+export function addAlpha(rgbStr: string, alpha: number) {
   if (rgbStr.startsWith('rgb(')) {
     return rgbStr.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
   }
@@ -16,18 +16,36 @@ interface AudioVisualizerCanvasProps {
   mode: 'waves' | 'bars' | 'radial';
   isPlaying?: boolean;
   className?: string;
+  centerRadiusRatio?: number;
 }
 
 export function AudioVisualizerCanvas({
   mode,
   isPlaying = true,
   className = '',
+  centerRadiusRatio,
 }: AudioVisualizerCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animFrameId = useRef<number | null>(null);
   const phaseRef = useRef<number>(0);
   const peaksRef = useRef<number[]>([]);
   const { dominantColors } = usePlayerStore();
+
+  // Keep colorsRef always synchronized with Zustand so the RAF render loop never stales
+  const colorsRef = useRef(dominantColors);
+  useEffect(() => {
+    colorsRef.current = dominantColors;
+  }, [dominantColors]);
+
+  const ratioRef = useRef(centerRadiusRatio);
+  useEffect(() => {
+    ratioRef.current = centerRadiusRatio;
+  }, [centerRadiusRatio]);
+
+  const isPlayingRef = useRef(isPlaying);
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -52,12 +70,13 @@ export function AudioVisualizerCanvas({
     const render = () => {
       animFrameId.current = requestAnimationFrame(render);
       const analyser = getAudioAnalyser();
+      const activeIsPlaying = isPlayingRef.current;
 
-      if (analyser && isPlaying) {
+      if (analyser && activeIsPlaying) {
         analyser.getByteFrequencyData(freqData);
         analyser.getByteTimeDomainData(timeData);
       } else {
-        // Subtle ambient idle breathing when paused or waiting for audio
+        // Ambient idle breathing when paused or waiting for audio
         for (let i = 0; i < bufferLength; i++) {
           freqData[i] = Math.max(0, freqData[i] * 0.95);
           timeData[i] = 128;
@@ -74,12 +93,15 @@ export function AudioVisualizerCanvas({
       }
       const bassAvg = bassSum / 12 / 255; // 0 to 1
 
+      // Read current live colors (guaranteed fresh on every single frame)
+      const liveColors = colorsRef.current || usePlayerStore.getState().dominantColors;
+
       if (mode === 'waves') {
-        renderAuroraWaves(ctx, width, height, timeData, freqData, phaseRef.current, bassAvg, dominantColors);
+        renderAuroraWaves(ctx, width, height, timeData, freqData, phaseRef.current, bassAvg, liveColors, activeIsPlaying);
       } else if (mode === 'bars') {
-        renderGlassBars(ctx, width, height, freqData, peaksRef, bassAvg, dominantColors);
+        renderGlassBars(ctx, width, height, freqData, peaksRef, bassAvg, liveColors, activeIsPlaying);
       } else if (mode === 'radial') {
-        renderRadialPulse(ctx, width, height, freqData, bassAvg, phaseRef.current, dominantColors);
+        renderRadialPulse(ctx, width, height, freqData, bassAvg, phaseRef.current, liveColors, ratioRef.current, activeIsPlaying);
       }
     };
 
@@ -89,7 +111,7 @@ export function AudioVisualizerCanvas({
       if (animFrameId.current) cancelAnimationFrame(animFrameId.current);
       window.removeEventListener('resize', handleResize);
     };
-  }, [mode, isPlaying]);
+  }, [mode]);
 
   return (
     <canvas
@@ -109,15 +131,16 @@ function renderAuroraWaves(
   freqData: Uint8Array,
   phase: number,
   bass: number,
-  colors: [string, string] | null
+  colors: [string, string] | null,
+  isPlaying: boolean
 ) {
   const midY = height * 0.55;
-  const c1 = colors ? addAlpha(colors[0], 0.45) : 'rgba(168, 85, 247, 0.45)';
-  const c2 = colors ? addAlpha(colors[0], 0.02) : 'rgba(126, 34, 206, 0.02)';
-  const c3 = colors ? addAlpha(colors[1], 0.4) : 'rgba(6, 182, 212, 0.4)';
-  const c4 = colors ? addAlpha(colors[1], 0.02) : 'rgba(8, 145, 178, 0.02)';
-  const c5 = colors ? addAlpha(colors[0], 0.3) : 'rgba(236, 72, 153, 0.4)';
-  const c6 = colors ? addAlpha(colors[0], 0.01) : 'rgba(190, 24, 93, 0.02)';
+  const c1 = colors ? addAlpha(colors[0], 0.5) : 'rgba(240, 245, 255, 0.4)';
+  const c2 = colors ? addAlpha(colors[0], 0.02) : 'rgba(240, 245, 255, 0.01)';
+  const c3 = colors ? addAlpha(colors[1], 0.45) : 'rgba(200, 225, 255, 0.35)';
+  const c4 = colors ? addAlpha(colors[1], 0.02) : 'rgba(200, 225, 255, 0.01)';
+  const c5 = colors ? addAlpha(colors[0], 0.35) : 'rgba(180, 210, 255, 0.25)';
+  const c6 = colors ? addAlpha(colors[0], 0.01) : 'rgba(180, 210, 255, 0.01)';
 
   const layers = [
     {
@@ -155,9 +178,10 @@ function renderAuroraWaves(
       const x = i * step;
       const normalizedTime = (timeData[i] - 128) / 128; // -1 to 1
       const normalizedFreq = (freqData[i] || 0) / 255;
+      const audioActivity = Math.max(normalizedFreq, isPlaying ? 0.2 : 0.08);
 
       const sine = Math.sin(phase * layer.speed + (i / timeData.length) * Math.PI * 3 * layer.freqMult);
-      const displacement = (normalizedTime * 0.6 + sine * 0.4) * layer.amp * (0.5 + normalizedFreq * 0.5);
+      const displacement = (normalizedTime * 0.6 + sine * 0.4) * layer.amp * (0.4 + audioActivity * 0.6);
       const y = midY + displacement;
 
       if (i === 0) {
@@ -166,8 +190,9 @@ function renderAuroraWaves(
         const prevX = (i - 1) * step;
         const prevTime = (timeData[i - 1] - 128) / 128;
         const prevFreq = (freqData[i - 1] || 0) / 255;
+        const prevAudio = Math.max(prevFreq, isPlaying ? 0.2 : 0.08);
         const prevSine = Math.sin(phase * layer.speed + ((i - 1) / timeData.length) * Math.PI * 3 * layer.freqMult);
-        const prevY = midY + (prevTime * 0.6 + prevSine * 0.4) * layer.amp * (0.5 + prevFreq * 0.5);
+        const prevY = midY + (prevTime * 0.6 + prevSine * 0.4) * layer.amp * (0.4 + prevAudio * 0.6);
 
         const cx = (prevX + x) / 2;
         const cy = (prevY + y) / 2;
@@ -202,7 +227,8 @@ function renderGlassBars(
   freqData: Uint8Array,
   peaksRef: React.MutableRefObject<number[]>,
   bass: number,
-  colors: [string, string] | null
+  colors: [string, string] | null,
+  isPlaying: boolean
 ) {
   const barCount = 48;
   const spacing = 4 * window.devicePixelRatio;
@@ -219,8 +245,10 @@ function renderGlassBars(
   for (let i = 0; i < barCount; i++) {
     // Distribute logarithmic-like indices
     const dataIdx = Math.floor(Math.pow(i / barCount, 1.4) * (freqData.length - 1));
-    const val = freqData[dataIdx] || 0;
-    const barHeight = Math.max(4 * window.devicePixelRatio, (val / 255) * maxHeight);
+    const audioVal = (freqData[dataIdx] || 0) / 255;
+    const idleVal = (Math.sin(i * 0.25 + (peaksRef.current[i] || 0) * 0.1) * 0.5 + 0.5) * 0.08;
+    const val = Math.max(audioVal, isPlaying ? idleVal : idleVal * 0.5);
+    const barHeight = Math.max(4 * window.devicePixelRatio, val * maxHeight);
 
     const x = startX + i * (barWidth + spacing);
     const y = baseY - barHeight;
@@ -235,9 +263,9 @@ function renderGlassBars(
 
     // Pillar gradient
     const grad = ctx.createLinearGradient(x, y, x, baseY);
-    grad.addColorStop(0, colors ? addAlpha(colors[1], 0.9) : '#c084fc');
-    grad.addColorStop(0.5, colors ? addAlpha(colors[0], 0.9) : '#a855f7');
-    grad.addColorStop(1, colors ? addAlpha(colors[0], 0.15) : 'rgba(168, 85, 247, 0.15)');
+    grad.addColorStop(0, colors ? addAlpha(colors[1], 0.95) : 'rgba(255, 255, 255, 0.95)');
+    grad.addColorStop(0.5, colors ? addAlpha(colors[0], 0.9) : 'rgba(210, 230, 255, 0.85)');
+    grad.addColorStop(1, colors ? addAlpha(colors[0], 0.15) : 'rgba(210, 230, 255, 0.15)');
 
     ctx.fillStyle = grad;
     roundRect(ctx, x, y, barWidth, barHeight, barWidth / 2);
@@ -251,8 +279,8 @@ function renderGlassBars(
     // Mirrored glassy reflection beneath
     const reflHeight = barHeight * 0.35;
     const reflGrad = ctx.createLinearGradient(x, baseY, x, baseY + reflHeight);
-    reflGrad.addColorStop(0, colors ? addAlpha(colors[0], 0.25) : 'rgba(168, 85, 247, 0.25)');
-    reflGrad.addColorStop(1, colors ? addAlpha(colors[0], 0.0) : 'rgba(168, 85, 247, 0.0)');
+    reflGrad.addColorStop(0, colors ? addAlpha(colors[0], 0.25) : 'rgba(255, 255, 255, 0.2)');
+    reflGrad.addColorStop(1, colors ? addAlpha(colors[0], 0.0) : 'rgba(255, 255, 255, 0.0)');
 
     ctx.fillStyle = reflGrad;
     roundRect(ctx, x, baseY + 2 * window.devicePixelRatio, barWidth, reflHeight, barWidth / 2);
@@ -268,21 +296,25 @@ function renderRadialPulse(
   freqData: Uint8Array,
   bass: number,
   phase: number,
-  colors: [string, string] | null
+  colors: [string, string] | null,
+  centerRadiusRatio?: number,
+  isPlaying?: boolean
 ) {
   const centerX = width / 2;
   const centerY = height / 2;
   const minDim = Math.min(width, height);
-  const baseRadius = minDim * 0.22 * (1 + bass * 0.2);
+  // Default ratio: 0.22 for fullscreen modal; customizable e.g. 0.38 for NowPlaying
+  const ratio = centerRadiusRatio ?? 0.22;
+  const baseRadius = minDim * ratio * (1 + bass * 0.15);
   const spokeCount = 64;
 
   // Expanding shockwave ripples on heavy bass
-  if (bass > 0.45) {
-    const shockRadius = baseRadius * (1.2 + Math.sin(phase * 4) * 0.2);
+  if (bass > 0.4) {
+    const shockRadius = baseRadius * (1.15 + Math.sin(phase * 4) * 0.15);
     ctx.beginPath();
     ctx.arc(centerX, centerY, shockRadius, 0, Math.PI * 2);
     ctx.lineWidth = 2 * window.devicePixelRatio;
-    ctx.strokeStyle = colors ? addAlpha(colors[0], Math.max(0, 0.4 - (shockRadius / minDim))) : `rgba(168, 85, 247, ${Math.max(0, 0.4 - (shockRadius / minDim))})`;
+    ctx.strokeStyle = colors ? addAlpha(colors[0], Math.max(0, 0.45 - (shockRadius / minDim))) : `rgba(255, 255, 255, ${Math.max(0, 0.45 - (shockRadius / minDim))})`;
     ctx.stroke();
   }
 
@@ -290,13 +322,13 @@ function renderRadialPulse(
   const innerGrad = ctx.createRadialGradient(
     centerX,
     centerY,
-    baseRadius * 0.1,
+    baseRadius * 0.2,
     centerX,
     centerY,
     baseRadius
   );
-  innerGrad.addColorStop(0, colors ? addAlpha(colors[0], 0.35) : 'rgba(168, 85, 247, 0.35)');
-  innerGrad.addColorStop(0.7, colors ? addAlpha(colors[1], 0.15) : 'rgba(6, 182, 212, 0.15)');
+  innerGrad.addColorStop(0, colors ? addAlpha(colors[0], 0.35) : 'rgba(255, 255, 255, 0.3)');
+  innerGrad.addColorStop(0.7, colors ? addAlpha(colors[1], 0.15) : 'rgba(200, 220, 255, 0.15)');
   innerGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
   ctx.fillStyle = innerGrad;
@@ -308,8 +340,10 @@ function renderRadialPulse(
   for (let i = 0; i < spokeCount; i++) {
     const angle = (i / spokeCount) * Math.PI * 2 + phase * 0.2;
     const dataIdx = Math.floor((i / spokeCount) * (freqData.length / 2));
-    const val = (freqData[dataIdx] || 0) / 255;
-    const spokeLen = minDim * 0.16 * val;
+    const audioVal = (freqData[dataIdx] || 0) / 255;
+    const idleVal = (Math.sin(phase * 2.5 + i * 0.35) * 0.5 + 0.5) * 0.14;
+    const val = Math.max(audioVal, isPlaying ? idleVal : idleVal * 0.5);
+    const spokeLen = Math.max(3, minDim * 0.16 * val);
 
     const x1 = centerX + Math.cos(angle) * baseRadius;
     const y1 = centerY + Math.sin(angle) * baseRadius;
@@ -317,8 +351,8 @@ function renderRadialPulse(
     const y2 = centerY + Math.sin(angle) * (baseRadius + spokeLen);
 
     const spikeGrad = ctx.createLinearGradient(x1, y1, x2, y2);
-    spikeGrad.addColorStop(0, colors ? addAlpha(colors[0], 0.8) : 'rgba(168, 85, 247, 0.8)');
-    spikeGrad.addColorStop(1, colors ? addAlpha(colors[1], 0.9) : 'rgba(6, 182, 212, 0.9)');
+    spikeGrad.addColorStop(0, colors ? addAlpha(colors[0], 0.85) : 'rgba(255, 255, 255, 0.85)');
+    spikeGrad.addColorStop(1, colors ? addAlpha(colors[1], 0.95) : 'rgba(200, 220, 255, 0.95)');
 
     ctx.beginPath();
     ctx.moveTo(x1, y1);

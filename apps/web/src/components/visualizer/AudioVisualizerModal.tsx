@@ -17,14 +17,22 @@ import {
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { useAudioPlayer, useAudioStateStore } from '@/hooks/useAudioPlayer';
 import { useUIStore } from '@/store/useUIStore';
-import { AudioVisualizerCanvas } from './AudioVisualizerCanvas';
+import { AudioVisualizerCanvas, addAlpha } from './AudioVisualizerCanvas';
+import { useCoverColors } from '@/hooks/useCoverColors';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function AudioVisualizerModal() {
   const { isVisualizerOpen, closeVisualizer, visualizerMode, setVisualizerMode } = useUIStore();
-  const { currentTrack, isPlaying, nextTrack, prevTrack } = usePlayerStore();
+  const { currentTrack, isPlaying, nextTrack, prevTrack, dominantColors, setDominantColors } = usePlayerStore();
   const { togglePlay, seek } = useAudioPlayer();
   const { currentTime, duration } = useAudioStateStore();
+
+  const extractedColors = useCoverColors(currentTrack?.albumArt);
+  useEffect(() => {
+    if (extractedColors) {
+      setDominantColors(extractedColors);
+    }
+  }, [extractedColors, setDominantColors]);
 
   // Escape key handler
   useEffect(() => {
@@ -134,7 +142,14 @@ export function AudioVisualizerModal() {
         {/* ── Centerpiece Artwork Accent (Visible in Cosmic & Ambient modes) ── */}
         {visualizerMode === 'radial' && currentTrack && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 flex flex-col items-center">
-            <div className="relative w-36 h-36 sm:w-48 sm:h-48 rounded-full overflow-hidden border-2 border-white/30 shadow-[0_0_50px_rgba(168,85,247,0.6)] animate-spin-slow">
+            <div
+              className="relative w-36 h-36 sm:w-48 sm:h-48 rounded-full overflow-hidden border-2 border-white/30 animate-spin-slow transition-all duration-500"
+              style={{
+                boxShadow: dominantColors
+                  ? `0 0 55px ${addAlpha(dominantColors[0], 0.65)}`
+                  : '0 0 45px rgba(255, 255, 255, 0.25)',
+              }}
+            >
               {currentTrack.albumArt ? (
                 <img
                   src={currentTrack.albumArt}
@@ -142,7 +157,7 @@ export function AudioVisualizerModal() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-purple-950 flex items-center justify-center">
+                <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
                   <Music2 className="w-12 h-12 text-white/30" />
                 </div>
               )}

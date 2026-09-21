@@ -142,6 +142,26 @@ export class MusicController {
     }
   }
 
+  @Get('proxy/image')
+  async proxyImage(@Query('url') url: string, @Res() res: Response) {
+    if (!url) throw new BadRequestException('Query parameter "url" is required');
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        res.status(response.status).end();
+        return;
+      }
+      res.setHeader('Content-Type', response.headers.get('content-type') || 'image/jpeg');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      const arrayBuffer = await response.arrayBuffer();
+      res.send(Buffer.from(arrayBuffer));
+    } catch {
+      res.status(500).end();
+    }
+  }
+
   @Get('proxy/youtube/:id/prefetch')
   async prefetchYoutubeStream(@Param('id') id: string) {
     if (!id) throw new BadRequestException('Missing YouTube ID');
