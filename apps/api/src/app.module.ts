@@ -20,7 +20,7 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '../../.env',
+      envFilePath: ['../../.env', '.env', '../.env', 'apps/api/.env'],
     }),
     ThrottlerModule.forRoot([
       {
