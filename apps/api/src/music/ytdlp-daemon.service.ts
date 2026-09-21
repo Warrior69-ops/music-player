@@ -51,16 +51,86 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
   private destroyed = false;
   private restartTimer: NodeJS.Timeout | null = null;
   private activePrefetches = 0;
-  private readonly MAX_PARALLEL = 3;
+  private readonly cacheFilePath = path.join(
+    process.cwd(),
+    '.cache',
+    'stream_cache.json',
+  );
+  private saveDebounceTimer: NodeJS.Timeout | null = null;
 
   onModuleInit() {
+    this.loadPersistentCache();
     this.startDaemon();
   }
 
   onModuleDestroy() {
     this.destroyed = true;
     if (this.restartTimer) clearTimeout(this.restartTimer);
+    if (this.saveDebounceTimer) clearTimeout(this.saveDebounceTimer);
     if (this.proc) this.proc.kill();
+  }
+
+  private loadPersistentCache() {
+    try {
+      if (fs.existsSync(this.cacheFilePath)) {
+        const raw = fs.readFileSync(this.cacheFilePath, 'utf-8');
+        const data = JSON.parse(raw);
+        const now = Date.now();
+        let loaded = 0;
+        for (const [id, entry] of Object.entries<any>(data)) {
+          if (entry && entry.expiresAt && entry.expiresAt > now) {
+            this.cache.set(id, {
+              url: entry.url,
+              headers: entry.headers || { ...ANDROID_HEADERS },
+              expiresAt: entry.expiresAt,
+              totalLength: entry.totalLength,
+            });
+            loaded++;
+          }
+        }
+        this.logger.log(
+          `[YtDlpDaemon] Loaded ${loaded} active cached streams from disk`,
+        );
+      }
+    } catch (e: any) {
+      this.logger.warn(
+        `[YtDlpDaemon] Failed to load persistent stream cache: ${e.message}`,
+      );
+    }
+  }
+
+  private scheduleSaveCache() {
+    if (this.saveDebounceTimer) return;
+    this.saveDebounceTimer = setTimeout(() => {
+      this.saveDebounceTimer = null;
+      try {
+        const dir = path.dirname(this.cacheFilePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        const now = Date.now();
+        const serializable: Record<string, any> = {};
+        for (const [id, entry] of this.cache.entries()) {
+          if (entry.expiresAt > now) {
+            serializable[id] = {
+              url: entry.url,
+              headers: entry.headers,
+              expiresAt: entry.expiresAt,
+              totalLength: entry.totalLength,
+            };
+          }
+        }
+        fs.writeFileSync(
+          this.cacheFilePath,
+          JSON.stringify(serializable),
+          'utf-8',
+        );
+      } catch (e: any) {
+        this.logger.warn(
+          `[YtDlpDaemon] Failed to save persistent stream cache: ${e.message}`,
+        );
+      }
+    }, 1500);
   }
 
   private startDaemon() {
@@ -134,6 +204,7 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
               expiresAt,
             };
             this.cache.set(id, entry);
+            this.scheduleSaveCache();
             this.logger.log(`[YtDlpDaemon] Successfully extracted ${id}`);
             p.resolvers.forEach((resolve) => resolve(entry));
             this.bufferFirstChunk(entry).catch(() => {});
@@ -271,8 +342,14 @@ export class YtDlpDaemonService implements OnModuleInit, OnModuleDestroy {
     // 1. Cache hit (< 1ms)
     const cached = this.cache.get(videoId);
     if (cached) {
-      if (Date.now() < cached.expiresAt) return cached;
+      if (Date.now() < cached.expiresAt) {
+        if (!cached.firstChunk) {
+          this.bufferFirstChunk(cached).catch(() => {});
+        }
+        return cached;
+      }
       this.cache.delete(videoId);
+      this.scheduleSaveCache();
     }
 
     // 2. Coalesce with already in-flight resolution for identical videoId

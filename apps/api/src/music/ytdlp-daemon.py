@@ -27,12 +27,13 @@ ydl_opts = {
     'no_warnings': True,
     'skip_download': True,
     'lazy_playlist': True,
+    'noplaylist': True,
+    'socket_timeout': 6,
     'no_color': True,
-    # Render runs on datacenter IPs: the default web client gets
-    # "Sign in to confirm you're not a bot". Android clients bypass it.
+    # Android client bypasses datacenter bot checks, falling back to web
     'extractor_args': {
         'youtube': {
-            'player_client': ['android_music', 'android', 'web'],
+            'player_client': ['android', 'web'],
         },
     },
 }
@@ -60,10 +61,8 @@ def _setup_cookies():
 COOKIE_FILE = _setup_cookies()
 if COOKIE_FILE:
     ydl_opts['cookiefile'] = COOKIE_FILE
-    # Authenticated: android_music returns direct https audio formats
-    # (web client is SABR-only and yields "Requested format is not available").
     ydl_opts['extractor_args']['youtube']['player_client'] = [
-        'android_music', 'android', 'web',
+        'android', 'web',
     ]
     print('[daemon] using YT_COOKIES authentication', file=sys.stderr, flush=True)
 

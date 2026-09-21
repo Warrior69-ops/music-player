@@ -24,6 +24,7 @@ import { TrackCard } from '@/components/ui/TrackCard';
 import { TrackMenu } from '@/components/ui/TrackMenu';
 import { EqualizerBars } from '@/components/ui/EqualizerBars';
 import { smartShuffleTracks } from '@/lib/smartShuffle';
+import { warmupStandbyTrack } from '@/hooks/useAudioPlayer';
 
 function formatDuration(seconds: number): string {
   if (!seconds || isNaN(seconds)) return '0:00';
@@ -272,6 +273,9 @@ export default function SectionDetailPage() {
               <div
                 key={`${track.providerTrackId}-${idx}`}
                 onClick={() => handleTrackRowClick(track, idx)}
+                onMouseEnter={() => warmupStandbyTrack(track)}
+                onPointerDown={() => warmupStandbyTrack(track)}
+                onTouchStart={() => warmupStandbyTrack(track)}
                 className={`group grid grid-cols-[36px_1fr_90px_40px] items-center px-4 py-2.5 rounded-xl transition-all duration-200 cursor-pointer border ${
                   isCurrent
                     ? 'bg-purple-950/40 border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.2)]'

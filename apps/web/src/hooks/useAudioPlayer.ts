@@ -66,7 +66,14 @@ async function resolveStreamUrl(track: Track): Promise<string | null> {
   const offlineUrl = await getOfflineAudioBlobUrl(trackId);
   if (offlineUrl) return offlineUrl;
 
-  // 2. Fallback to Network Stream
+  // 2. Check Automatic LRU Audio Cache (< 1ms instant play!)
+  try {
+    const { getCachedAudioBlobUrl } = await import('@/lib/audioCache');
+    const cachedBlobUrl = await getCachedAudioBlobUrl(trackId);
+    if (cachedBlobUrl) return cachedBlobUrl;
+  } catch {}
+
+  // 3. Fallback to Network Stream
   let targetUrl = getTrackStreamUrl(track);
   if (!targetUrl) {
     try {
@@ -693,6 +700,11 @@ export function useAudioPlayer() {
           }
 
           api.post('/history', currentTrack).catch(console.error);
+          if (targetUrl && !targetUrl.startsWith('blob:')) {
+            import('@/lib/audioCache')
+              .then(({ autoCacheTrackAudio }) => autoCacheTrackAudio(trackId, targetUrl))
+              .catch(() => {});
+          }
           isFetchingStream = false;
           return;
         }
@@ -716,6 +728,11 @@ export function useAudioPlayer() {
         }
 
         api.post('/history', currentTrack).catch(console.error);
+        if (targetUrl && !targetUrl.startsWith('blob:')) {
+          import('@/lib/audioCache')
+            .then(({ autoCacheTrackAudio }) => autoCacheTrackAudio(trackId, targetUrl))
+            .catch(() => {});
+        }
       } catch (error) {
         console.error('Failed to play track:', error);
         setIsPlaying(false);

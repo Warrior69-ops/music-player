@@ -118,10 +118,18 @@ export default function SearchPage() {
 
   const hasSuggestions = showSuggestions && suggestions && suggestions.length > 0;
 
-  // Prefetch first result track for instantaneous play
+  // Prefetch top 3 result tracks sequentially for instantaneous playback
   useEffect(() => {
-    if (results?.songs?.[0]?.providerTrackId) {
-      api.get(`/music/proxy/youtube/${results.songs[0].providerTrackId}/prefetch`).catch(() => {});
+    if (results?.songs && results.songs.length > 0) {
+      const topTracks = results.songs.slice(0, 3);
+      topTracks.forEach((track, index) => {
+        const id = track.providerTrackId || track.id;
+        if (id) {
+          setTimeout(() => {
+            api.get(`/music/proxy/youtube/${id}/prefetch`).catch(() => {});
+          }, index * 180);
+        }
+      });
     }
   }, [results]);
 
@@ -274,7 +282,12 @@ export default function SearchPage() {
                           : 'hover:bg-white/8 text-foreground/90'
                       }`}
                       onClick={() => handleSearch(s.title)}
-                      onMouseEnter={() => setSelectedIndex(itemIndex)}
+                      onMouseEnter={() => {
+                        setSelectedIndex(itemIndex);
+                        if (s.id) {
+                          api.get(`/music/proxy/youtube/${s.id}/prefetch`).catch(() => {});
+                        }
+                      }}
                       onMouseDown={(e) => e.preventDefault()}
                     >
                       <div className="w-8 h-8 rounded-md bg-primary/20 flex items-center justify-center shrink-0">

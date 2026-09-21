@@ -40,7 +40,7 @@ export function TrackCard({ track, contextQueue, trackIndex, queueSource, onRemo
   const handleMouseEnter = () => {
     hoverTimeoutRef.current = setTimeout(() => {
       warmupStandbyTrack(track);
-    }, 1200); // 1.2s window
+    }, 150); // Fast 150ms micro-window
   };
 
   const handleMouseLeave = () => {
@@ -66,6 +66,7 @@ export function TrackCard({ track, contextQueue, trackIndex, queueSource, onRemo
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onPointerDown={handlePointerDown}
+      onTouchStart={handlePointerDown}
       className={`group relative aspect-square w-full liquid-glass-card rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 transform-gpu will-change-transform [content-visibility:auto] [contain-intrinsic-size:210px_210px] ${
         isCurrentTrack
           ? 'border-purple-500/70 ring-1 ring-purple-500/50 shadow-[0_10px_30px_rgba(139,92,246,0.35)]'
