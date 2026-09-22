@@ -94,10 +94,10 @@ export default function PlaylistPage() {
         <button
           onClick={() => router.push('/library')}
           className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white flex items-center gap-2 text-xs font-semibold"
-          title="Back to Playlists"
+          title="Back to Library"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Playlists</span>
+          <span>Back to Library</span>
         </button>
       </div>
 

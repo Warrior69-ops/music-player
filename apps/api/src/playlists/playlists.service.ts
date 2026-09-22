@@ -88,6 +88,30 @@ export class PlaylistsService {
       .exec() as any;
   }
 
+  async addTracksToPlaylist(
+    id: string,
+    userId: string,
+    tracks: AddTrackDto[],
+  ): Promise<Playlist> {
+    const playlist = await this.getPlaylistById(id, userId);
+    if (playlist.userId.toString() !== userId.toString())
+      throw new UnauthorizedException();
+
+    const tracksWithDate = tracks.map((t) => ({ ...t, addedAt: new Date() }));
+
+    return this.playlistModel
+      .findByIdAndUpdate(
+        id,
+        {
+          $push: {
+            tracks: { $each: tracksWithDate },
+          },
+        },
+        { new: true },
+      )
+      .exec() as any;
+  }
+
   async removeTrackFromPlaylist(
     id: string,
     userId: string,

@@ -136,11 +136,34 @@ export const useCreatePlaylist = () => {
   });
 };
 
+export const useDeletePlaylist = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/playlists/${id}`);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['playlists'] }),
+  });
+};
+
 export const useAddTrackToPlaylist = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ playlistId, track }: { playlistId: string; track: Track }) => {
       await api.post(`/playlists/${playlistId}/tracks`, track);
+    },
+    onSuccess: (_, { playlistId }) => {
+      queryClient.invalidateQueries({ queryKey: ['playlists'] });
+      queryClient.invalidateQueries({ queryKey: ['playlist', playlistId] });
+    },
+  });
+};
+
+export const useAddTracksToPlaylistBulk = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ playlistId, tracks }: { playlistId: string; tracks: Track[] }) => {
+      await api.post(`/playlists/${playlistId}/tracks/bulk`, { tracks });
     },
     onSuccess: (_, { playlistId }) => {
       queryClient.invalidateQueries({ queryKey: ['playlists'] });

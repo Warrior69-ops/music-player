@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
-import { useCreatePlaylist, useAddTrackToPlaylist } from '@/hooks/queries';
+import { useCreatePlaylist, useAddTracksToPlaylistBulk } from '@/hooks/queries';
 import api from '@/lib/api';
 
 interface ImportPlaylistModalProps {
@@ -13,7 +13,7 @@ export function ImportPlaylistModal({ isOpen, onClose }: ImportPlaylistModalProp
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const createPlaylist = useCreatePlaylist();
-  const addTrack = useAddTrackToPlaylist();
+  const addTracksBulk = useAddTracksToPlaylistBulk();
 
   if (!isOpen) return null;
 
@@ -38,8 +38,8 @@ export function ImportPlaylistModal({ isOpen, onClose }: ImportPlaylistModalProp
         { name: playlistName },
         {
           onSuccess: async (newPlaylist) => {
-            let addedCount = 0;
             const notFoundTracks: string[] = [];
+            const validTracks: any[] = [];
             
             for (const t of data.tracks) {
               try {
@@ -53,24 +53,29 @@ export function ImportPlaylistModal({ isOpen, onClose }: ImportPlaylistModalProp
                     continue; 
                   }
                 }
-                
-                await addTrack.mutateAsync({ playlistId: (newPlaylist as any)._id || (newPlaylist as any).id, track: trackToAdd });
-                addedCount++;
+                validTracks.push(trackToAdd);
               } catch (err) {
-                console.error('Failed to add imported track', err);
+                console.error('Failed to resolve track', err);
                 notFoundTracks.push(`${t.title} by ${t.artist || 'Unknown'}`);
               }
             }
             
+            if (validTracks.length > 0) {
+              await addTracksBulk.mutateAsync({ 
+                playlistId: (newPlaylist as any)._id || (newPlaylist as any).id, 
+                tracks: validTracks 
+              });
+            }
+            
             if (notFoundTracks.length > 0) {
-              toast.success(`Imported ${addedCount} tracks to ${playlistName}.`, { id: toastId });
+              toast.success(`Imported ${validTracks.length} tracks to ${playlistName}.`, { id: toastId });
               setTimeout(() => {
-                toast.warning(`${notFoundTracks.length} tracks were not found on YouTube:\n${notFoundTracks.slice(0, 5).join(', ')}${notFoundTracks.length > 5 ? '...' : ''}`, {
+                toast.warning(`${notFoundTracks.length} tracks were not found:\n${notFoundTracks.slice(0, 5).join(', ')}${notFoundTracks.length > 5 ? '...' : ''}`, {
                   duration: 8000,
                 });
               }, 500);
             } else {
-              toast.success(`Imported ${addedCount} tracks to ${playlistName}`, { id: toastId });
+              toast.success(`Imported ${validTracks.length} tracks to ${playlistName}`, { id: toastId });
             }
             
             onClose();

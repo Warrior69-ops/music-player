@@ -6,9 +6,10 @@ import { TrackCard } from '@/components/ui/TrackCard';
 import { PlaylistActionBar } from '@/components/playlist/PlaylistActionBar';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { smartShuffleTracks } from '@/lib/smartShuffle';
-import { Heart } from 'lucide-react';
+import { Heart, ChevronLeft } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 export default function FavoritesPage() {
   const { data: favorites, isLoading } = useFavorites();
@@ -32,6 +33,17 @@ export default function FavoritesPage() {
 
   return (
     <div className="p-8 pb-32">
+      <div className="mb-6">
+        <Link
+          href="/library"
+          className="inline-flex w-fit p-2 pr-4 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white items-center gap-2 text-xs font-semibold"
+          title="Back to Library"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span>Back to Library</span>
+        </Link>
+      </div>
+      
       {/* Hero Header */}
       <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 mb-8">
         <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl bg-gradient-to-br from-pink-600 via-purple-600 to-primary shadow-2xl flex items-center justify-center shrink-0 border border-white/10">

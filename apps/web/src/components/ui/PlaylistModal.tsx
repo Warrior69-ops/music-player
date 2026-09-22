@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { usePlaylists, useCreatePlaylist, useAddTrackToPlaylist } from '@/hooks/queries';
+import { usePlaylists, useCreatePlaylist, useAddTrackToPlaylist, useAddTracksToPlaylistBulk } from '@/hooks/queries';
 import { Track } from '@/store/usePlayerStore';
 import { toast } from 'sonner';
 import { X, Plus, Loader2 } from 'lucide-react';
@@ -16,6 +16,7 @@ export function PlaylistModal({ isOpen, onClose, track }: PlaylistModalProps) {
   const { data: playlists, isLoading } = usePlaylists();
   const createPlaylist = useCreatePlaylist();
   const addTrack = useAddTrackToPlaylist();
+  const addTracksBulk = useAddTracksToPlaylistBulk();
 
   const [isCreating, setIsCreating] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
@@ -29,10 +30,16 @@ export function PlaylistModal({ isOpen, onClose, track }: PlaylistModalProps) {
     createPlaylist.mutate(
       { name: newPlaylistName },
       {
-        onSuccess: () => {
+        onSuccess: async (newPlaylist) => {
           setNewPlaylistName('');
           setIsCreating(false);
-          toast.success('Playlist created!');
+          const id = (newPlaylist as any)._id || (newPlaylist as any).id;
+          
+          if (track) {
+            await handleAddToPlaylist(id, newPlaylistName);
+          } else {
+            toast.success('Playlist created!');
+          }
         },
         onError: () => toast.error('Failed to create playlist')
       }
@@ -44,10 +51,7 @@ export function PlaylistModal({ isOpen, onClose, track }: PlaylistModalProps) {
     
     try {
       if (Array.isArray(track)) {
-        // Add all tracks sequentially
-        for (const t of track) {
-          await addTrack.mutateAsync({ playlistId, track: t });
-        }
+        await addTracksBulk.mutateAsync({ playlistId, tracks: track });
         toast.success(`Added ${track.length} tracks to ${playlistName}`);
       } else {
         await addTrack.mutateAsync({ playlistId, track });

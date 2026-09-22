@@ -21,7 +21,7 @@ if not exist ".env" (
 REM 2. Check for apps\web\.env.local
 if not exist "apps\web\.env.local" (
     echo [*] Creating apps\web\.env.local...
-    echo NEXT_PUBLIC_API_URL=http://localhost:3001 > apps\web\.env.local
+    echo NEXT_PUBLIC_API_URL=http://localhost:3001> apps\web\.env.local
 )
 
 REM 3. Check for node_modules

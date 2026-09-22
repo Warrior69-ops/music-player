@@ -2,10 +2,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical, Play, Shuffle, Download, DownloadCloud } from 'lucide-react';
+import { MoreVertical, Play, Shuffle, Download, DownloadCloud, Trash2 } from 'lucide-react';
 import { usePlayerStore, Track } from '@/store/usePlayerStore';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { smartShuffleTracks } from '@/lib/smartShuffle';
+import { useDeletePlaylist } from '@/hooks/queries';
+import { useRouter, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 
 interface PlaylistMenuProps {
@@ -32,6 +34,9 @@ export const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
 
   const { setQueue } = usePlayerStore();
   const { isDownloaded, isDownloading, downloadTrack, removeTrack } = useOfflineSync();
+  const deletePlaylist = useDeletePlaylist();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const updateCoords = () => {
     if (!triggerRef.current) return;
@@ -156,6 +161,26 @@ export const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
     }
   };
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsOpen(false);
+    
+    if (confirm(`Are you sure you want to delete "${playlistName}"?`)) {
+      deletePlaylist.mutate(playlistId, {
+        onSuccess: () => {
+          toast.success('Playlist deleted');
+          if (pathname.includes(playlistId)) {
+            router.push('/library');
+          }
+        },
+        onError: () => {
+          toast.error('Failed to delete playlist');
+        }
+      });
+    }
+  };
+
   return (
     <div className={`relative inline-block text-left ${className}`} onClick={(e) => e.stopPropagation()}>
       <button
@@ -214,29 +239,57 @@ export const PlaylistMenu: React.FC<PlaylistMenuProps> = ({
             <div className="my-1 border-t border-white/10" />
 
             {/* Download */}
-            <button
-              onClick={handleToggleDownload}
-              disabled={isCurrentlyDownloading && !isFullyDownloaded}
-              className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-colors text-left disabled:opacity-50"
-            >
-              {isFullyDownloaded ? (
-                <>
-                  <DownloadCloud className="w-3.5 h-3.5 text-cyan-400" />
-                  <span className="text-cyan-400">Remove Download</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>
-                    {isCurrentlyDownloading 
-                      ? `Downloading (${downloadingCount})...` 
-                      : isPartiallyDownloaded 
-                        ? 'Download Missing Tracks' 
-                        : 'Download Playlist'}
-                  </span>
-                </>
-              )}
-            </button>
+            {playlistId !== 'downloaded' && (
+              <button
+                onClick={handleToggleDownload}
+                disabled={isCurrentlyDownloading && !isFullyDownloaded}
+                className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/10 transition-colors text-left disabled:opacity-50"
+              >
+                {isFullyDownloaded ? (
+                  <>
+                    <DownloadCloud className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="text-cyan-400">Remove Download</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>
+                      {isCurrentlyDownloading 
+                        ? `Downloading (${downloadingCount})...` 
+                        : isPartiallyDownloaded 
+                          ? 'Download Missing' 
+                          : type === 'favorites' ? 'Download Favorites' : 'Download Playlist'}
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {type === 'playlist' && playlistId !== 'downloaded' && (
+              <>
+                <div className="my-1 border-t border-white/10" />
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                  <span>Delete Playlist</span>
+                </button>
+              </>
+            )}
+
+            {playlistId === 'downloaded' && (
+              <>
+                <div className="my-1 border-t border-white/10" />
+                <button
+                  onClick={handleToggleDownload}
+                  className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                  <span>Delete Downloaded Songs</span>
+                </button>
+              </>
+            )}
           </div>,
           document.body
         )}

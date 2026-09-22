@@ -2,7 +2,7 @@
 
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { TrackCard } from '@/components/ui/TrackCard';
-import { Play, Shuffle, DownloadCloud } from 'lucide-react';
+import { Play, Shuffle, DownloadCloud, ChevronLeft } from 'lucide-react';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import Link from 'next/link';
 
@@ -38,6 +38,16 @@ export default function DownloadedPage() {
     <div className="flex flex-col h-full bg-black">
       {/* Header */}
       <div className="relative h-64 sm:h-80 w-full overflow-hidden shrink-0">
+        <div className="absolute top-6 left-6 sm:left-8 z-30">
+          <Link
+            href="/library"
+            className="inline-flex w-fit p-2 pr-4 bg-black/20 hover:bg-black/40 border border-white/10 rounded-full transition-colors text-white items-center gap-2 text-xs font-semibold backdrop-blur-md"
+            title="Back to Library"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Back to Library</span>
+          </Link>
+        </div>
         <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/60 via-blue-900/40 to-black z-0" />
         
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />

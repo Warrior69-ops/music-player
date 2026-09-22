@@ -74,6 +74,20 @@ export class PlaylistsController {
     return { success: true, data };
   }
 
+  @Post(':id/tracks/bulk')
+  async addTracksBulk(
+    @Request() req,
+    @Param('id') id: string,
+    @Body('tracks') tracks: AddTrackDto[],
+  ) {
+    const data = await this.playlistsService.addTracksToPlaylist(
+      id,
+      req.user._id,
+      tracks,
+    );
+    return { success: true, data };
+  }
+
   @Delete(':id/tracks/:providerTrackId')
   async removeTrack(
     @Request() req,
